@@ -1,1 +1,69 @@
-{"buy_orders":{"IBM_155":[{"qty":100,"symbol":"IBM","price":155.0,"side":"Buy","order_type":"Limit","cl_ord_id":"100"}]},"sell_orders":{}}
+{
+  "buy_orders": {},
+  "sell_orders": {
+    "IBM_602.5": [
+      {
+        "qty": 300,
+        "symbol": "IBM",
+        "price": 602.5,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id1"
+      },
+      {
+        "qty": 300,
+        "symbol": "IBM",
+        "price": 602.5,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id2"
+      },
+      {
+        "qty": 100,
+        "symbol": "IBM",
+        "price": 602.5,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id3"
+      },
+      {
+        "qty": 100,
+        "symbol": "IBM",
+        "price": 602.5,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id4"
+      }
+    ],
+    "IBM_602": [
+      {
+        "qty": 300,
+        "symbol": "IBM",
+        "price": 602.0,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id5"
+      }
+    ],
+    "IBM_602.1": [
+      {
+        "qty": 100,
+        "symbol": "IBM",
+        "price": 602.1,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id4"
+      }
+    ],
+    "IBM_601.9": [
+      {
+        "qty": 300,
+        "symbol": "IBM",
+        "price": 601.9,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id6"
+      }
+    ]
+  }
+}

@@ -5,11 +5,13 @@ extern crate rocket;
 use std::{env, fs};
 use std::str::FromStr;
 use rocket::form::Form;
-use rocket::fs::FileServer;
+use rocket::fs::{FileServer, TempFile};
 use rocket::http::Status;
 
-use rocket::Request;
+use rocket::{Data, Request};
+use rocket::data::ByteUnit;
 use serde_json::{from_str, to_string};
+use sim::common::utils::{create_order_book, create_order_from_string, read_input};
 
 use sim::matchers::fifo_matcher::FIFOMatcher;
 use sim::matchers::matcher::Matcher;
@@ -79,6 +81,38 @@ fn reset() -> Result<String,Status>{
        Ok(message)
 }
 
+
+
+#[post("/upload",  data = "<data>")]
+async fn upload<'a>(mut data: Data<'a>) -> Result<String,Status> {
+
+    //et mut buffer = Vec::new();
+
+   // data.open(ByteUnit(1024)).into_buf().read_to_end(&mut buffer).await.map_err(|_| Status::InternalServerError)?;
+    let ds =  data.open(ByteUnit::Kilobyte(1024));
+    let val = ds.into_string().await.unwrap().value;
+
+    let raw_data:Vec<&str> = val.split("\n").collect();
+    let mut orders = vec![];
+
+    for line in raw_data{
+        let temp:Vec<&str> = line.split(' ').collect();
+        if temp.len() == 5 {
+            orders.push(line);
+        }
+    }
+
+    let mut order_book = OrderBook::default();
+    for line in orders{
+        let order = create_order_from_string(line.to_string());
+        order_book.add_order_to_order_book(order);
+    }
+    let ob:OB = OB::from(&order_book);
+    persist_order_book(&ob,ORDER_BOOK_FILE);
+    let res = to_string(&ob).unwrap();
+    Ok(format!("Order file persisted{}",res))
+}
+
 #[catch(404)]
 fn not_found(req: &Request) -> String {
     format!("Oh no! We couldn't find the requested path '{}'", req.uri())
@@ -94,7 +128,7 @@ fn malformed(req: &Request) -> String {
 fn rocket() -> _ {
     rocket::build().
         register("/", catchers![malformed, not_found]).
-        mount("/", routes![index,add_order,get_order_book,reset]).
+        mount("/", routes![index,add_order,get_order_book,reset,upload]).
         mount("/", FileServer::from("static/"))
 }
 

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order file upload</title>
+</head>
+<body>
+<h1>Order file Upload Form</h1>
+<form action="/upload" method="POST" enctype="multipart/form-data">
+    <label for="file">Select a .txt file:</label>
+    <input type="file" name="file" id="file" accept=".txt">
+    <br>
+    <input type="submit" value="Upload">
+</form>
+</body>
+</html>
