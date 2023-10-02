@@ -98,12 +98,12 @@ fn add_string_keys(target: &mut HashMap<String, VecDeque<OrderSingle>>, source: 
     }
 }
 
-pub fn persist_order_book(ob: &OB) {
+pub fn persist_order_book(ob: &OB,path:&str) {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true) // Create the file if it doesn't exist
         .truncate(true) //overwrite content
-        .open("orderbook.json").unwrap();
+        .open(path).unwrap();
     let content = to_string(&ob).unwrap();
     file.write_all(content.as_bytes()).expect("Error writing");
     file.flush().expect("error flushing");
