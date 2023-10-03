@@ -82,35 +82,28 @@ fn reset() -> Result<String,Status>{
 }
 
 
-
-#[post("/upload",  data = "<data>")]
-async fn upload<'a>(mut data: Data<'a>) -> Result<String,Status> {
-
-    //et mut buffer = Vec::new();
-
-   // data.open(ByteUnit(1024)).into_buf().read_to_end(&mut buffer).await.map_err(|_| Status::InternalServerError)?;
-    let ds =  data.open(ByteUnit::Kilobyte(1024));
+#[post("/upload", data = "<data>")]
+async fn upload<'a>(mut data: Data<'a>) -> Result<String, Status> {
+    let ds = data.open(ByteUnit::Kilobyte(1024));
     let val = ds.into_string().await.unwrap().value;
-
-    let raw_data:Vec<&str> = val.split("\n").collect();
+    let raw_data: Vec<&str> = val.split("\n").collect();
     let mut orders = vec![];
-
-    for line in raw_data{
-        let temp:Vec<&str> = line.split(' ').collect();
-        if temp.len() == 5 {
-            orders.push(line);
+    for line in raw_data {
+        let temp = line.trim_end_matches('\r');
+        let trimmed: Vec<&str> = temp.split(' ').collect();
+        if trimmed.len() == 5 {
+            orders.push(temp);
         }
     }
-
     let mut order_book = OrderBook::default();
-    for line in orders{
+    for line in orders {
         let order = create_order_from_string(line.to_string());
         order_book.add_order_to_order_book(order);
     }
-    let ob:OB = OB::from(&order_book);
-    persist_order_book(&ob,ORDER_BOOK_FILE);
+    let ob: OB = OB::from(&order_book);
+    persist_order_book(&ob, ORDER_BOOK_FILE);
     let res = to_string(&ob).unwrap();
-    Ok(format!("Order file persisted{}",res))
+    Ok(format!("Order file persisted{:#?}", res))
 }
 
 #[catch(404)]
