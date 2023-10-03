@@ -58,8 +58,12 @@ export ALGO=PRO
 The web module exposes 5 actions, viz.,
 
 * /index.html : the order entry page
-* /order_entry : Submits the order for matching. Responds with fills if matched.
-* /order_book : Displays the current order book
+* /order_entry : Submits the order for matching. Responds with fills if matched. Retunrs the fills in either json or 
+   htnl format
+* /order_book/json : 
+  * Displays the current order book in json format
+* /order_book/pretty: 
+  * Displays the currrent order book as html table
 * /reset      : resets the orderbook to an empty order book
 * /upload     : Upload an order file to create the order book
 
