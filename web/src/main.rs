@@ -2,20 +2,22 @@
 #[macro_use]
 extern crate rocket;
 
-use std::fs;
+use std::{env, fs};
 use std::str::FromStr;
 
 use log::Log;
-use rocket::{Data, Request};
+use rocket::{Data, Request, State};
 use rocket::get;
 use rocket::data::ByteUnit;
+use rocket::form::Form;
 use rocket::fs::FileServer;
 use rocket::http::Status;
 use rocket::response::content::RawHtml;
+use serde_json::{from_str, to_string};
 
-use sim::common::utils::create_order_from_string;
-use sim::model::domain::OrderBook;
-use web::{create_order_book_table, OB, persist_order_book};
+use sim::common::utils::{create_order_from_string, log};
+use sim::model::domain::{Fill, OrderBook, OrderSingle, OrderType, Side};
+use web::{create_order_book_table, get_matcher, OB, Order, persist_order_book};
 
 const ORDER_BOOK_FILE: &str = "orderbook.json";
 static LOG_FILE: &str = "web/logs/web.log";
@@ -28,18 +30,19 @@ fn index() -> &'static str {
 }
 
 #[get("/order_book/<format>")]
-fn get_order_book(format: &str) -> Result<String, Status> {
-    let mut res: String = fs::read_to_string(ORDER_BOOK_FILE).unwrap();
+fn get_order_book(format: &str) -> Result<RawHtml<String>, Status> {
+    let  content : String = fs::read_to_string(ORDER_BOOK_FILE).unwrap();
+    let mut res = RawHtml(content.clone());
     if format == "pretty" {
-        let ob: OB = from_str(&res).unwrap();
+        let ob: OB = from_str(&content).unwrap();
         let order_book = OB::to(&ob);
-        res = order_book.pretty_print_self();
+        res = create_order_book_table(&order_book);
     }
     Ok(res)
 }
 
 #[post("/order_entry", data = "<order_form>")]
-fn add_order(order_form: Form<Order>, logger: &State<LOGGER>) -> Result<String, Status> {
+fn add_order(order_form: Form<Order> ) -> Result<String, Status> {
     let order: Order = order_form.into_inner();
     log(&format!("Received order {}", to_string(&order).unwrap()), LOG_FILE);
     let order_single = OrderSingle::new(order.qty(),
