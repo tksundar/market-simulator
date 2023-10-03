@@ -1,8 +1,10 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, Write};
 use std::str::FromStr;
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::{DateTime, Local};
 use log::{error, trace};
 use rand::Rng;
 
@@ -93,14 +95,30 @@ pub fn create_order_from_string(line: String) -> OrderSingle {
     // order
 }
 
+pub fn log(message: &String, log_file: &str) {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(log_file).unwrap();
+    let utc: DateTime<Local> = Local::now();
+
+    let formatted_timestamp = utc.format("%Y/%m/%d/%H:%M:%S:%3f").to_string();
+
+    let mut log_message = format!("\n{}-{}", formatted_timestamp, message);
+    let file_lock = Mutex::new(file);
+    {
+        let mut file_guard = file_lock.lock().unwrap();
+        file_guard.write_all(log_message.as_bytes()).expect("error writing log");
+        file_guard.flush().expect("error flushing");
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
-    use crate::model::domain::{OrderBook, OrderBookKey};
+    use crate::common::utils::create_test_order_book;
+    use crate::model::domain::OrderBookKey;
     use crate::model::domain::Side::Buy;
-    use crate::utils::{create_order_book, read_input};
-
-// use super::*;
 
     #[test]
     fn test_create_order_book() {
@@ -129,11 +147,10 @@ mod tests {
         let orders = sell.get(&key3);
         assert_eq!(orders.iter().len(), 1);
     }
-
+}
     fn create_test_order_book() -> OrderBook {
         let input = read_input("fifo_test_data/orders.txt");
         let mut order_book = OrderBook::default();
         create_order_book(&mut order_book, input);
         order_book
     }
-}

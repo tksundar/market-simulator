@@ -226,9 +226,9 @@ impl Fill {
         }
     }
 
-    pub fn pretty_print(fills: &Vec<Fill>) {
+    pub fn pretty_print(fills: &Vec<Fill>) -> String {
         if fills.is_empty() {
-            return;
+            return "No fills".to_string();
         }
 
         let title = format!("{}", "Fills".reversed().bold());
@@ -242,6 +242,7 @@ impl Fill {
         }
 
         table.printstd();
+        table.to_string()
     }
 
     pub fn set_qty(&mut self, qty: u32) {
@@ -507,11 +508,14 @@ impl OrderBook {
         }
     }
 
-    pub fn pretty_print_self(&self) {
+    pub fn pretty_print_self(&self) -> String {
         let keys = self.get_excl_keys();
+        let mut strings = String::new();
         for key in &keys {
-            self.print_market_depth_for(key);
+            let s = self.print_market_depth_for(key);
+            strings.push_str(s.as_str());
         }
+        strings
     }
 
 
@@ -531,20 +535,25 @@ impl OrderBook {
         }
         excl_keys
     }
-    pub fn print_market_depth_for(&self, symbol: &str) {
+    pub fn print_market_depth_for(&self, symbol: &str) -> String {
         let mut md_buy = self.get_md(symbol, &self.buy_orders).clone();
         let mut md_sell = self.get_md(symbol, &self.sell_orders).clone();
         let s = format!("market depth for {}", symbol);
+        let mut strings = String::new();
         println!("\n{}", s.reversed());
         println!();
         println!("{}", "Bids:".green().bold());
-        self.print_md(&mut md_buy);
+        strings.push_str("Bids:\n");
+        strings.push_str(self.print_md(&mut md_buy).as_str());
         println!();
-        println!("{}", "Offers:".red().bold());
-        self.print_md(&mut md_sell);
+        println!("{}", "Offers:\n".red().bold());
+        strings.push_str("Offers:\n");
+        strings.push_str(self.print_md(&mut md_sell).as_str());
+        strings
+
     }
 
-    fn print_md(&self, mds_buy: &Vec<MarketDepth>) {
+    fn print_md(&self, mds_buy: &Vec<MarketDepth>) -> String {
         let mut table = Table::new();
         table.add_row(row!["Quantity","Price"]);
         for md in mds_buy {
@@ -552,6 +561,7 @@ impl OrderBook {
         }
 
         table.printstd();
+        table.to_string()
     }
 
 
@@ -643,9 +653,11 @@ mod tests {
     #[test]
     fn test_print_md() {
         let mut ob = OrderBook::default();
-        create_order_book(&mut ob, read_input("prorata_test_data/orders.txt"));
+        create_order_book(&mut ob, read_input("test_data/orders.txt"));
         let key = &String::from("IBM");
-        ob.print_market_depth_for(key);
+        let s = ob.pretty_print_self();
+
+        println!("{}", s);
     }
 }
 

@@ -2,16 +2,24 @@ use std::collections::{HashMap, VecDeque};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::str::FromStr;
+use std::sync::Mutex;
 
+use env_logger::Env;
+use log::Log;
 use rocket::FromForm;
+use rocket::response::content::RawHtml;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string;
+
+use sim::common::utils;
+use sim::common::utils::{log, Sigma};
 use sim::matchers::fifo_matcher::FIFOMatcher;
 use sim::matchers::matcher::Matcher;
 use sim::matchers::prorata_matcher::ProrataMatcher;
-
 use sim::model::domain::{OrderBook, OrderBookKey, OrderSingle};
 use sim::model::domain::Side::{Buy, Sell};
+
+const LOG_FILE: &str = "web/logs/web.log";
 
 #[derive(Debug, Clone, Serialize, FromForm)]
 pub struct Order {
@@ -21,6 +29,7 @@ pub struct Order {
     side: String,
     order_type: String,
     cl_ord_id: String,
+    format: String,
 }
 
 impl Order {
@@ -47,6 +56,18 @@ impl Order {
     pub fn cl_ord_id(&self) -> &String {
         &self.cl_ord_id
     }
+
+    pub fn format(&self) -> &String {
+        &self.format
+    }
+}
+
+pub fn init_logger() {
+    let log_file_path = "logs/web.log";
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug"))
+        .format_timestamp(None)
+        .write_style(env_logger::WriteStyle::Always)
+        .init();
 }
 
 
@@ -105,8 +126,39 @@ pub fn persist_order_book(ob: &OB,path:&str) {
         .truncate(true) //overwrite content
         .open(path).unwrap();
     let content = to_string(&ob).unwrap();
-    file.write_all(content.as_bytes()).expect("Error writing");
-    file.flush().expect("error flushing");
+
+    let mut file_lock = Mutex::new(file);
+    {
+        let mut file = file_lock.lock().unwrap();
+        file.write_all(content.as_bytes()).expect("Error writing");
+        file.flush().expect("error flushing");
+    }
+}
+
+pub fn create_order_book_table(order_book: &OrderBook) -> RawHtml<String> {
+    let buy = order_book.get_orders_for(Buy);
+    let mut html = String::from("<h3>Order Book </h3>");
+    html.push_str("<Table>");
+    html.push_str("<tr><td>Symbol</td><td>Quantity</td><td>Price</td><td>Side</tr>");
+    for (key, value) in buy {
+        add_html(&key, &value, &mut html, "Buy");
+    }
+    html.push_str("</p>");
+    let sell = order_book.get_orders_for(Sell);
+    for (key, value) in sell {
+        add_html(&key, &value, &mut html, "Sell");
+    }
+    html.push_str("</table>");
+    log(&html, LOG_FILE);
+    RawHtml(html)
+}
+
+fn add_html(key: &OrderBookKey, orders: &VecDeque<OrderSingle>, html: &mut String, side: &str) {
+    let v: Vec<OrderSingle> = orders.clone().into_iter().collect();
+    let total = utils::Aggregator::sigma(&v);
+    let px = key.price();
+    let row = format!("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>", key.symbol(), total, key.price(), side);
+    html.push_str(row.as_str());
 }
 
 pub fn get_matcher(algo:&String) -> Box<dyn Matcher>{
@@ -118,6 +170,7 @@ pub fn get_matcher(algo:&String) -> Box<dyn Matcher>{
     }
 
 }
+
 
 #[cfg(test)]
 mod tests {

@@ -2,38 +2,46 @@
 #[macro_use]
 extern crate rocket;
 
-use std::{env, fs};
+use std::fs;
 use std::str::FromStr;
-use rocket::form::Form;
-use rocket::fs::{FileServer, TempFile};
-use rocket::http::Status;
 
+use log::Log;
 use rocket::{Data, Request};
+use rocket::get;
 use rocket::data::ByteUnit;
-use serde_json::{from_str, to_string};
-use sim::common::utils::{create_order_book, create_order_from_string, read_input};
+use rocket::fs::FileServer;
+use rocket::http::Status;
+use rocket::response::content::RawHtml;
 
-use sim::matchers::fifo_matcher::FIFOMatcher;
-use sim::matchers::matcher::Matcher;
-use sim::matchers::prorata_matcher::ProrataMatcher;
-use sim::model::domain::{OrderBook, OrderSingle, OrderType, Side};
-use web::{get_matcher, OB, Order, persist_order_book};
+use sim::common::utils::create_order_from_string;
+use sim::model::domain::OrderBook;
+use web::{create_order_book_table, OB, persist_order_book};
 
-static ORDER_BOOK_FILE: &str = "orderbook.json";
+const ORDER_BOOK_FILE: &str = "orderbook.json";
+static LOG_FILE: &str = "web/logs/web.log";
+
+struct LOGGER;
 
 #[get("/")]
 fn index() -> &'static str {
     "Please fill the form"
 }
 
-#[get("/order_book")]
-fn get_order_book() -> Result<String, Status> {
-    Ok(fs::read_to_string(ORDER_BOOK_FILE).unwrap())
+#[get("/order_book/<format>")]
+fn get_order_book(format: &str) -> Result<String, Status> {
+    let mut res: String = fs::read_to_string(ORDER_BOOK_FILE).unwrap();
+    if format == "pretty" {
+        let ob: OB = from_str(&res).unwrap();
+        let order_book = OB::to(&ob);
+        res = order_book.pretty_print_self();
+    }
+    Ok(res)
 }
 
 #[post("/order_entry", data = "<order_form>")]
-fn add_order(order_form: Form<Order>) -> Result<String, Status> {
+fn add_order(order_form: Form<Order>, logger: &State<LOGGER>) -> Result<String, Status> {
     let order: Order = order_form.into_inner();
+    log(&format!("Received order {}", to_string(&order).unwrap()), LOG_FILE);
     let order_single = OrderSingle::new(order.qty(),
                                         order.symbol().clone(),
                                         order.price(),
@@ -65,9 +73,14 @@ fn add_order(order_form: Form<Order>) -> Result<String, Status> {
         let ob = OB::from(&order_book);
         persist_order_book(&ob,ORDER_BOOK_FILE);
     }
-    let fills_str = to_string(&fills).unwrap();
-    Ok(fills_str)
+    let mut fill_str = to_string(&fills).unwrap();
+    if order.format() == "pretty" {
+        fill_str = Fill::pretty_print(&fills);
+    }
+    Ok(fill_str)
 }
+
+fn match_order() {}
 
 #[get("/reset")]
 fn reset() -> Result<String,Status>{
@@ -83,7 +96,7 @@ fn reset() -> Result<String,Status>{
 
 
 #[post("/upload", data = "<data>")]
-async fn upload<'a>(mut data: Data<'a>) -> Result<String, Status> {
+async fn upload<'a>(mut data: Data<'a>) -> Result<RawHtml<String>, Status> {
     let ds = data.open(ByteUnit::Kilobyte(1024));
     let val = ds.into_string().await.unwrap().value;
     let raw_data: Vec<&str> = val.split("\n").collect();
@@ -102,13 +115,13 @@ async fn upload<'a>(mut data: Data<'a>) -> Result<String, Status> {
     }
     let ob: OB = OB::from(&order_book);
     persist_order_book(&ob, ORDER_BOOK_FILE);
-    let res = to_string(&ob).unwrap();
-    Ok(format!("Order file persisted{:#?}", res))
+
+    Ok(create_order_book_table(&order_book))
 }
 
 #[catch(404)]
 fn not_found(req: &Request) -> String {
-    format!("Oh no! We couldn't find the requested path '{}'", req.uri())
+    format!("The requested path {} , is not available ", req.uri())
 }
 
 #[catch(422)]
@@ -122,7 +135,7 @@ fn rocket() -> _ {
     rocket::build().
         register("/", catchers![malformed, not_found]).
         mount("/", routes![index,add_order,get_order_book,reset,upload]).
-        mount("/", FileServer::from("static/"))
+        mount("/", FileServer::from("web/static/")).manage(LOGGER)
 }
 
 
