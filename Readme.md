@@ -55,7 +55,7 @@ export ALGO=PRO
 
 <h3> Usage: </h3>
 
-The web module exposes 3 actions, viz.,
+The web module exposes 5 actions, viz.,
 
 * /index.html : the order entry page
 * /order_entry : Submits the order for matching. Responds with fills if matched.
