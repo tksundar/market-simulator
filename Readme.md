@@ -1,4 +1,3 @@
-<H1>Exchange Simulator</H1>
 
 A simple exchange simulator project with the following features
 
@@ -55,24 +54,25 @@ export ALGO=PRO
 
 <h3> Usage: </h3>
 
-The web module exposes 5 actions, viz.,
+cargo run or web.exe(from target/debug or target/release directory). This starts a web server locally 
+on port 8000. The following urls are supported
 
 * /index.html : the order entry page
-* /order_entry : Submits the order for matching. Responds with fills if matched. Retunrs the fills in either json or 
-   htnl format
+* /order_entry : Submits the order for matching. Responds with fills if matched. Returns the fills in either json or 
+   html format
 * /order_book/json : 
   * Displays the current order book in json format
 * /order_book/pretty: 
-  * Displays the currrent order book as html table
-* /reset      : resets the orderbook to an empty order book
-* /upload     : Upload an order file to create the order book
+  * Displays the current order book as html table
+* /reset      : resets the order book to an empty order book.  Reset is enabled only for admin roles.
+* /upload     : Upload an order file to create the order book. Multiple uploads will update the order book
 
-Order Book is persisted and survives server restart.
+A single order book is shared by all users . Order Book is persisted and survives server restart. Access to order book is thread safe
 
-All responses are in json by default. A FIX standard formatted respone is under development for clients 
-who might find this format useful. 
+All responses are in json by default. HTML output is rendered if the pretty format is chosen
 
-There is no proposal to support the FIX connection protocol
+At some point i would like to add FIX support. There is nothing available in [crates.io]() that is stable enough for use. 
+Looks like this has to be built ground up. 
 
 
 
