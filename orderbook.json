@@ -10,16 +10,6 @@
         "cl_ord_id": "id5"
       }
     ],
-    "IBM_601.9": [
-      {
-        "qty": 300,
-        "symbol": "IBM",
-        "price": 601.9,
-        "side": "Buy",
-        "order_type": "Limit",
-        "cl_ord_id": "id6"
-      }
-    ],
     "IBM_602.5": [
       {
         "qty": 300,
@@ -37,19 +27,37 @@
         "order_type": "Limit",
         "cl_ord_id": "id3"
       }
+    ],
+    "TATA_602.5": [
+      {
+        "qty": 20,
+        "symbol": "TATA",
+        "price": 602.5,
+        "side": "Buy",
+        "order_type": "Limit",
+        "cl_ord_id": "id7"
+      },
+      {
+        "qty": 30,
+        "symbol": "TATA",
+        "price": 602.5,
+        "side": "Buy",
+        "order_type": "Limit",
+        "cl_ord_id": "id7"
+      }
+    ],
+    "IBM_601.9": [
+      {
+        "qty": 300,
+        "symbol": "IBM",
+        "price": 601.9,
+        "side": "Buy",
+        "order_type": "Limit",
+        "cl_ord_id": "id6"
+      }
     ]
   },
   "sell_orders": {
-    "IBM_602.1": [
-      {
-        "qty": 100,
-        "symbol": "IBM",
-        "price": 602.1,
-        "side": "Sell",
-        "order_type": "Limit",
-        "cl_ord_id": "id4"
-      }
-    ],
     "IBM_602.5": [
       {
         "qty": 300,
@@ -66,6 +74,26 @@
         "side": "Sell",
         "order_type": "Limit",
         "cl_ord_id": "id4"
+      }
+    ],
+    "IBM_602.1": [
+      {
+        "qty": 100,
+        "symbol": "IBM",
+        "price": 602.1,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id4"
+      }
+    ],
+    "TATA_602.5": [
+      {
+        "qty": 100,
+        "symbol": "TATA",
+        "price": 602.5,
+        "side": "Sell",
+        "order_type": "Limit",
+        "cl_ord_id": "id7"
       }
     ]
   }

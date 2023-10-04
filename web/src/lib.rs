@@ -1,15 +1,16 @@
 use std::collections::{HashMap, VecDeque};
+use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::str::FromStr;
 use std::sync::Mutex;
 
-use env_logger::Env;
 use log::Log;
 use rocket::FromForm;
+use rocket::http::Status;
 use rocket::response::content::RawHtml;
 use serde::{Deserialize, Serialize};
-use serde_json::to_string;
+use serde_json::{from_str, to_string};
 
 use sim::common::utils;
 use sim::common::utils::{log, Sigma};
@@ -19,7 +20,9 @@ use sim::matchers::prorata_matcher::ProrataMatcher;
 use sim::model::domain::{OrderBook, OrderBookKey, OrderSingle};
 use sim::model::domain::Side::{Buy, Sell};
 
-const LOG_FILE: &str = "web/logs/web.log";
+pub static LOG_FILE: &str = "web/logs/web.log";
+const ORDER_BOOK_FILE: &str = "orderbook.json";
+
 
 #[derive(Debug, Clone, Serialize, FromForm)]
 pub struct Order {
@@ -62,13 +65,6 @@ impl Order {
     }
 }
 
-pub fn init_logger() {
-    let log_file_path = "logs/web.log";
-    env_logger::Builder::from_env(Env::default().default_filter_or("debug"))
-        .format_timestamp(None)
-        .write_style(env_logger::WriteStyle::Always)
-        .init();
-}
 
 
 #[derive(Serialize, Debug, Deserialize)]
@@ -110,6 +106,30 @@ fn add_order_book_keys(target: &mut HashMap<OrderBookKey, VecDeque<OrderSingle>>
     }
 }
 
+
+pub fn get_order_book_from_file(order_single: Option<OrderSingle>) -> OrderBook {
+    let content = match fs::read_to_string(ORDER_BOOK_FILE) {
+        Ok(data) => data,
+        Err(_) => String::new(),
+    };
+    let mut order_book = OrderBook::default();
+
+    if !content.is_empty() {
+        let ob: OB = from_str(&content).unwrap();
+        order_book = OB::to(&ob);
+        if let Some(order) = order_single {
+            order_book.add_order_to_order_book(order);
+        }
+        persist_order_book(&ob);
+    } else {
+        if let Some(order) = order_single {
+            order_book.add_order_to_order_book(order);
+        }
+        let ob = OB::from(&order_book);
+        persist_order_book(&ob);
+    }
+    order_book.clone()
+}
 fn add_string_keys(target: &mut HashMap<String, VecDeque<OrderSingle>>, source: &HashMap<OrderBookKey, VecDeque<OrderSingle>>) {
     for (key, val) in source {
         let mut k = key.symbol().to_string();
@@ -119,12 +139,23 @@ fn add_string_keys(target: &mut HashMap<String, VecDeque<OrderSingle>>, source: 
     }
 }
 
-pub fn persist_order_book(ob: &OB,path:&str) {
+pub fn reset() -> Result<String, Status> {
+    let mut message = String::new();
+    if let Err(err) = fs::remove_file(ORDER_BOOK_FILE) {
+        eprintln!("Error deleting file: {}", err);
+    } else {
+        message.push_str("Order book deleted successfully")
+    }
+
+    Ok(message)
+}
+
+pub fn persist_order_book(ob: &OB) {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true) // Create the file if it doesn't exist
         .truncate(true) //overwrite content
-        .open(path).unwrap();
+        .open(ORDER_BOOK_FILE).unwrap();
     let content = to_string(&ob).unwrap();
 
     let mut file_lock = Mutex::new(file);
@@ -156,7 +187,6 @@ pub fn create_order_book_table(order_book: &OrderBook) -> RawHtml<String> {
 fn add_html(key: &OrderBookKey, orders: &VecDeque<OrderSingle>, html: &mut String, side: &str) {
     let v: Vec<OrderSingle> = orders.clone().into_iter().collect();
     let total = utils::Aggregator::sigma(&v);
-    let px = key.price();
     let row = format!("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>", key.symbol(), total, key.price(), side);
     html.push_str(row.as_str());
 }
