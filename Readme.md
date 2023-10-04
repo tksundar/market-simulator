@@ -65,7 +65,7 @@ on port 8000. The following urls are supported
 * /order_book/pretty: 
   * Displays the current order book as html table
 * /reset      : resets the order book to an empty order book.  Reset is enabled only for admin roles.
-* /upload     : Upload an order file to create the order book. Multiple uploads will update the order book
+* /file_upload.html     : Upload an order file to create the order book. Multiple uploads will update the order book
 
 A single order book is shared by all users . Order Book is persisted and survives server restart. Access to order book is thread safe
 
