@@ -184,7 +184,6 @@ pub fn create_order_book_table(order_book: &OrderBook) -> RawHtml<String> {
         add_html(&key, &value, &mut html, "Sell");
     }
     html.push_str("</table>");
-    log(&html, LOG_FILE);
     RawHtml(html)
 }
 

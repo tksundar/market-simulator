@@ -110,7 +110,7 @@ fn rocket() -> _ {
     rocket::build().
         register("/", catchers![malformed, not_found]).
         mount("/", routes![index,add_order,get_order_book,reset,upload]).
-        mount("/", FileServer::from("web/static/"))
+        mount("/", FileServer::from("static/"))
 }
 
 
