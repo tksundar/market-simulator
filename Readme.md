@@ -6,11 +6,10 @@ A simple exchange simulator project with the following features
 * match an order using FIFO matcher or Pro-rata
   matcher (https://corporatefinanceinstitute.com/resources/career-map/sell-side/capital-markets/matching-orders/)
 
-The module sim is the back end exchange simulator that has all the matching functionalities with a CLI. The web module
-adds the web support.Either project can be compiled by renaming the main.rs file of the module appropriately.
-For example, i name the sim main file as <i>main.rs.cli</i> when buidling the project to run the web module.By default the web module is built and run<br>
+Module sim is the back end exchange simulator that has all the matching functionalities with a CLI. The web module
+adds the web support.
 
-<H2> CLI Modile </H2>
+<H2> CLI Module </H2>
 
 
 <h3>Usage:</h3>
@@ -42,7 +41,7 @@ executing <i> cargo run -- prorata_test_data/orders.txt PRO </i> will produce th
 <p><img src="images/prorata.png?raw=true"/> </p>
 
 
-Executing just cargo run (or exchange_simulator without any arguments) will start the FIFO matcher with an empty order
+Executing just cargo run (or sim without any arguments) will start the FIFO matcher with an empty order
 book that the user may populate from command line
 
 <h2>Web Module</h2>
@@ -55,9 +54,10 @@ export ALGO=PRO
 <h3> Usage: </h3>
 
 cargo run or web.exe(from target/debug or target/release directory). This starts a web server locally 
-on port 8000. The following urls are supported
+on port 8000. The following urls are supported. Static files are not automatically copied during build. This has to be manually 
+added or handled with bespoke build scripts
 
-* /index.html : the order entry page
+* /index.html : the order entry page. Delivered froma the static directory at the root
 * /order_entry : Submits the order for matching. Responds with fills if matched. Returns the fills in either json or 
    html format
 * /order_book/json : 
