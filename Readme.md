@@ -71,7 +71,8 @@ A single order book is shared by all users . Order Book is persisted and survive
 
 All responses are in json by default. HTML output is rendered if the pretty format is chosen
 
-At some point i would like to add FIX support. There is nothing available in https://crates.io/ that is stable enough for use. 
+<h2>Fix Module</h2>
+At some point I would like to add FIX support. There is nothing available in https://crates.io/ that is stable enough for use. 
 Looks like this has to be built ground up. 
 
 
