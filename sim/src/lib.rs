@@ -39,7 +39,8 @@ fn print_help() {
     println!("exchange_simulator.exe <order_file+path> <algo(FIFO|PRO>");
     process::exit(0);
 }
-
+///This function sits in a loop accepting user input for matching until the user quits
+/// User inputs are added to the order book and sent to the matcher for matching
 pub fn start_user(tx: &Sender<OrderBook>, rx: &Receiver<OrderBook>, file_path: String) {
     if file_path == "-h" {
         print_help();
@@ -78,12 +79,14 @@ pub fn start_user(tx: &Sender<OrderBook>, rx: &Receiver<OrderBook>, file_path: S
     }
 }
 
+/// creates the matcher based on the algo and starts the matcher which spins in a loop matching the order book as and when available
+/// C
 pub fn start_matcher(tx: &Sender<OrderBook>, rx: &Receiver<OrderBook>, algo: String) {
     if algo == "PRO" {
-        let mut matcher = ProrataMatcher::new();
+        let mut matcher = ProrataMatcher;
         matcher.start(&tx, &rx);
     } else {
-        let mut matcher = FIFOMatcher::new();
+        let mut matcher = FIFOMatcher;
         matcher.start(&tx, &rx);
     }
 }

@@ -11,6 +11,7 @@ use crate::model::domain::Side::{Buy, Sell};
 use crate::model::domain::Status::{Filled, New, PartialFill, PendingNew, Rejected, Replaced, UNKNOWN};
 use crate::utils::{Aggregator, generate_id, Sigma};
 
+///Order TYpe . Can be either Limit or Market
 #[derive(PartialEq, Debug, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum OrderType {
     Market,
@@ -45,7 +46,7 @@ pub enum Side {
     Buy,
     Sell,
 }
-
+/// Side of the order. Can be either Buy or Sell
 impl Side {
     pub fn string_value(&self) -> String {
         match self {
@@ -68,7 +69,12 @@ impl Default for Side {
         Buy
     }
 }
-
+///Order Status and Execution Status. Can be one of New,
+///    PendingNew,
+///    PartialFill,
+///    Filled,
+///     Rejected,
+///     Replaced,
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Status {
     New,
@@ -81,7 +87,8 @@ pub enum Status {
 }
 
 impl Status {
-    fn char_value(&self) -> char {
+    ///Returns the FIX specific character for the status as per FIX specification
+    pub fn char_value(&self) -> char {
         match self {
             New => '0',
             PendingNew => 'A',
@@ -114,7 +121,7 @@ impl PartialEq for Status {
     }
 }
 
-
+///Defines an order.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct OrderSingle {
     qty: u32,
@@ -125,7 +132,7 @@ pub struct OrderSingle {
     cl_ord_id: String,
 }
 
-
+///Defines a Fill from an Execution
 #[derive(Debug, Clone,
 Serialize, Deserialize)]
 pub struct Fill {
@@ -149,7 +156,7 @@ pub struct OrderBookKey {
     symbol: String,
 }
 
-
+///The key on which [`OrderSingle`] instances are stored in the [`OrderBook`]
 impl OrderBookKey {
     pub fn new(price: f64, symbol: String) -> Self {
         Self { price, symbol }
@@ -226,6 +233,7 @@ impl Fill {
         }
     }
 
+    ///Returns a string formatted a table of all the fills in the `fills` argument
     pub fn pretty_print(fills: &Vec<Fill>) -> String {
         if fills.is_empty() {
             return "No fills".to_string();
@@ -339,7 +347,15 @@ impl OrderSingle {
         }
     }
 
-
+/// Returns `true` if the order is valid. `false` otherwise. As you can see Market orders are
+/// not supported as af now
+///
+/// # Example
+/// self.symbol.trim().len() > 0 &&
+///             self.price() > 0.0 &&
+///             self.qty() > 0 &&
+///             (self.side.string_value() == "Buy" || self.side.string_value() == "Sell") &&
+///            self.order_type.string_value() == "Limit
     pub fn is_valid(&self) -> bool {
         self.symbol.trim().len() > 0 &&
             self.price() > 0.0 &&

@@ -1,0 +1,3 @@
+id7 TATA 100 602.5 Sell
+id8 TATA 20 602.5 Buy
+id9 TATA 30 602.5 Buy

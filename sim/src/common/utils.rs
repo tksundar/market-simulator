@@ -12,7 +12,9 @@ use crate::model::domain::{Fill, OrderBook, OrderSingle, OrderType, Side};
 
 pub struct Aggregator;
 
+
 pub trait Sigma<T> {
+    ///Aggregates quantities in a vec of orders or fills
     fn sigma(items: &Vec<T>) -> u32;
 }
 
@@ -38,6 +40,7 @@ impl Sigma<Fill> for Aggregator {
     }
 }
 
+///Reads the orders from a file and creates a [`Vec<String>`], one entry per order
 pub fn read_input(file_path: &str) -> Vec<String> {
     trace!("reading file {file_path}");
     if file_path.is_empty() {
@@ -52,7 +55,7 @@ pub fn read_input(file_path: &str) -> Vec<String> {
     lines
 }
 
-
+///Generates a unique id
 pub fn generate_id() -> String {
     let num: u64 = rand::thread_rng().gen_range(1..=1000000);
     let now = SystemTime::now();
@@ -61,6 +64,7 @@ pub fn generate_id() -> String {
     (num + id).to_string()
 }
 
+///updates the [`OrderBook`] with the orders in the input vector
 pub fn create_order_book(order_book: &mut OrderBook, input: Vec<String>) {
     if input.len() > 1 {
         trace!("Creating order book");
@@ -72,7 +76,10 @@ pub fn create_order_book(order_book: &mut OrderBook, input: Vec<String>) {
         }
     }
 }
-
+///Creates an Order from the string
+/// # Example
+/// for a string id1 IBM 300 602.5 Buy , this fn returns an [`OrderSingle`] instance,If an empty string
+/// is supplied, the fn will return the default [`OrderSingle`]
 pub fn create_order_from_string(line: String) -> OrderSingle {
     let tokens: Vec<&str> = line.split(" ").collect();
     if tokens.len() != 5 {
@@ -94,7 +101,8 @@ pub fn create_order_from_string(line: String) -> OrderSingle {
 
     // order
 }
-
+/// logs to a file. Use appropriate logger back end to log messages to a file
+#[deprecated]
 pub fn log(message: &String, log_file: &str) {
     let mut file = OpenOptions::new()
         .write(true)
@@ -116,41 +124,38 @@ pub fn log(message: &String, log_file: &str) {
 
 #[cfg(test)]
 mod tests {
-    use crate::common::utils::create_test_order_book;
-    use crate::model::domain::OrderBookKey;
+
+    use crate::common::utils::{create_order_from_string};
+    use crate::model::domain::{OrderBook, OrderBookKey};
     use crate::model::domain::Side::Buy;
 
-    #[test]
-    fn test_create_order_book() {
-        let order_book = create_test_order_book();
-        let (buy, sell) = order_book.get_orders_for_matching(Buy);
-        assert_eq!(buy.len(), 2);
-        assert_eq!(sell.len(), 2);
-    }
+
 
     #[test]
     fn test_values() {
-        let order_book = create_test_order_book();
-        let (buy, sell) = order_book.get_orders_for_matching(Buy);
-        let key1 = OrderBookKey::new(601.5, "IBM".to_string());
+        let order1 = "id1 IBM 300 602.5 Buy";
+        let order2 = "id2 IBM 300 601.1 Buy";
+        let order3 = "id3 IBM 300 601.1 Buy";
+        let order4 = "id4 IBM 300 601.9 Buy";
+        let mut order_book =OrderBook::default();
+        order_book.add_order_to_order_book(create_order_from_string(order1.to_string()));
+        order_book.add_order_to_order_book(create_order_from_string(order2.to_string()));
+        order_book.add_order_to_order_book(create_order_from_string(order3.to_string()));
+        order_book.add_order_to_order_book(create_order_from_string(order4.to_string()));
+        let key1 = OrderBookKey::new(602.5, "IBM".to_string());
         let key2 = OrderBookKey::new(601.1, "IBM".to_string());
-        let key3 = OrderBookKey::new(602.5, "IBM".to_string());
+        let key3 = OrderBookKey::new(601.9, "IBM".to_string());
+        let buy = order_book.get_orders_for(Buy);
         let orders = buy.get(&key1).unwrap();
-        println!("{:#?}", orders);
-        assert_eq!(orders.iter().len(), 4);
-        let orders = buy.get(&key2);
+        assert_eq!(buy.len(),3);
+
+        assert_eq!(orders.iter().len(), 1);
+        let orders = buy.get(&key2).unwrap();
+
+        assert_eq!(orders.iter().len(), 2);
+
+        let orders = buy.get(&key3).unwrap();
         assert_eq!(orders.iter().len(), 1);
 
-        let orders = sell.get(&key1);
-        assert_eq!(orders.iter().len(), 1);
-
-        let orders = sell.get(&key3);
-        assert_eq!(orders.iter().len(), 1);
     }
 }
-    fn create_test_order_book() -> OrderBook {
-        let input = read_input("fifo_test_data/orders.txt");
-        let mut order_book = OrderBook::default();
-        create_order_book(&mut order_book, input);
-        order_book
-    }

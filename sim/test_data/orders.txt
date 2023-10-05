@@ -4,4 +4,5 @@ id3 IBM 100 602.5 Buy
 id4 IBM 100 602.5 Sell
 id5 IBM 300 602 Buy
 id6 IBM 300 601.9 Buy
-id4 IBM 100 602.1 Sell
+id7 IBM 100 602.1 Sell
+id8 IBM 100 601.1 Buy

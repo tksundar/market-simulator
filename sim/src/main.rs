@@ -1,8 +1,13 @@
+use std::sync::mpsc::{Receiver, Sender};
+use std::thread::JoinHandle;
 use log::warn;
 
 use sim::{CmdArgs, get_cmd_args, start_matcher, start_user};
+use sim::model::domain::OrderBook;
 
 #[allow(unused_imports)]
+
+///The entry point for the sim module. The user input thread and matcher thread are started form here
 fn main() {
     env_logger::init();
 
@@ -18,14 +23,9 @@ fn main() {
             }
         }
     };
-
-
-    //matching thread
     let matcher = std::thread::spawn(move || {
-        start_matcher(&tx2, &rx1, cmd_args.algo)
+        start_matcher(&tx2, &rx1,cmd_args.algo);
     });
-
-    //Start the user thread
     let user = std::thread::spawn(move || {
         start_user(&tx1, &rx2, cmd_args.file_path);
     });
@@ -33,3 +33,4 @@ fn main() {
     user.join().expect("error");
     matcher.join().expect("error");
 }
+

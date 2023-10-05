@@ -5,7 +5,7 @@ use crate::model::domain::{Fill, OrderSingle};
 
 // Import Serde and Serde JSON macros
 
-
+///Provides implementation to convert OrderSingle and Fill to and from json format
 pub struct JsonFormatter {}
 
 impl JsonFormatter {

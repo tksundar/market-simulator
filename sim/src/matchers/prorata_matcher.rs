@@ -11,30 +11,11 @@ use crate::model::domain::Side::{Buy, Sell};
 use crate::model::domain::Status::{Filled, PartialFill};
 use crate::utils::{Aggregator, Sigma};
 
-pub struct ProrataMatcher {
-    name: String,
-}
+pub struct ProrataMatcher ;
 
 impl ProrataMatcher {
-    pub fn new() -> Self {
-        Self {
-            name: "PRO".to_string(),
-        }
-    }
 
 
-    /// Logic:
-    /// Assume two buy orders o1 and o2 exist for quantities n1 and n2 received at time t1 and t2, t2 > t1
-    /// Assume one sell order o3 exists for quantity n3 at t3 t3 > t2 > t1
-    /// Then o1 will be get fills for quantity n1/(n1_n2) and o2 will get flills for quantity n2/(n1+m2)
-    ///
-    /// example:
-    /// Buy Order o1 => n1 = 300;
-    /// Buy order o2 => n2 = 100;
-    /// Sell Order o3 -> n3 = 300;
-    ///
-    /// O1 fill = n1/(n1+n2) or 3/4th of 300  = 225
-    /// 02 fill = n2/(n1+n2) or 1/4th of 300 = 75
     fn proportional_match(&mut self, buy_orders: &mut VecDeque<OrderSingle>, sell_orders: &mut VecDeque<OrderSingle>) -> Vec<Fill> {
         let mut fills = vec![];
         let mut c_map = self.create_cum_qty_map(buy_orders);
@@ -110,14 +91,14 @@ impl ProrataMatcher {
         ex_fill
     }
 
-    fn create_cum_qty_map(&self, buy_orders: &VecDeque<OrderSingle>) -> HashMap<String, u32> {
+/*    fn create_cum_qty_map(&self, buy_orders: &VecDeque<OrderSingle>) -> HashMap<String, u32> {
         let mut map = HashMap::new();
 
         for order in buy_orders {
             map.insert(order.cl_ord_id().clone(), 0);
         }
         map
-    }
+    }*/
 }
 
 
@@ -140,6 +121,20 @@ impl Matcher for ProrataMatcher {
         }
     }
 
+    /// Matches the [`OrderBook`] according to the ratios of buy side order quantities
+    ///
+    /// # Logic:
+    /// Assume two buy orders o1 and o2 exist for quantities n1 and n2 received at time t1 and t2, t2 > t1
+    /// Assume one sell order o3 exists for quantity n3 at t3 t3 > t2 > t1
+    /// Then o1 will be get fills for quantity n1/(n1_n2) and o2 will get fills for quantity n2/(n1+m2)
+    ///
+    /// # example:
+    /// Buy Order o1 => n1 = 300;
+    /// Buy order o2 => n2 = 100;
+    /// Sell Order o3 -> n3 = 300;
+    ///
+    /// O1 fill = n1/(n1+n2) or 3/4th of 300  = 225
+    /// 02 fill = n2/(n1+n2) or 1/4th of 300 = 75
     fn match_order_book(&mut self, order_book: &mut OrderBook) -> Vec<Fill> {
         let mut buy_map = order_book.get_orders_for(Buy);
         let mut sell_map = order_book.get_orders_for(Sell);
@@ -189,7 +184,7 @@ mod tests {
         let mut sell_orders = VecDeque::new();
         sell_orders.push_back(create_order_from_string("id9 IBM 300 602.5 Sell".to_string()));
         sell_orders.push_back(create_order_from_string("id10 IBM 100 602.5 Sell".to_string()));
-        let mut pro = ProrataMatcher::new();
+        let mut pro = ProrataMatcher;
         let fills = pro.proportional_match(&mut buy_orders, &mut sell_orders);
 
         //assertions

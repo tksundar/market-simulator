@@ -74,6 +74,7 @@ pub struct OB {
 }
 
 impl OB {
+    ///creates an [`OB`] instance from [`OrderBook]
     pub fn from(order_book: &OrderBook) -> Self {
         let buy = order_book.get_orders_for(Buy);
         let sell = order_book.get_orders_for(Sell);
@@ -86,7 +87,7 @@ impl OB {
             sell_orders,
         }
     }
-
+ /// converts an [`OB`]  instance to  an [`OrderBook`]  instance
     pub fn to(ob: &OB) -> OrderBook {
         let mut buy = HashMap::new();
         add_order_book_keys(&mut buy, &ob.buy_orders);
@@ -106,7 +107,8 @@ fn add_order_book_keys(target: &mut HashMap<OrderBookKey, VecDeque<OrderSingle>>
     }
 }
 
-
+///Creates an  [`OrderBook`] instance from a file having the json string representation of the order book,
+/// optionally adding the supplied [`OrderSingle`] to the order book
 pub fn get_order_book_from_file(order_single: Option<OrderSingle>) -> OrderBook {
     let content = match fs::read_to_string(ORDER_BOOK_FILE) {
         Ok(data) => data,
@@ -138,7 +140,7 @@ fn add_string_keys(target: &mut HashMap<String, VecDeque<OrderSingle>>, source: 
         target.insert(k, val.clone());
     }
 }
-
+///Resets the [`OrderBook`] to an empty order book
 pub fn reset() -> Result<String, Status> {
     let mut message = String::new();
     if let Err(err) = fs::remove_file(ORDER_BOOK_FILE) {
@@ -150,6 +152,7 @@ pub fn reset() -> Result<String, Status> {
     Ok(message)
 }
 
+///Persists the [`OrderBook`] as a json string to file
 pub fn persist_order_book(ob: &OB) {
     let mut file = OpenOptions::new()
         .write(true)
@@ -166,6 +169,7 @@ pub fn persist_order_book(ob: &OB) {
     }
 }
 
+///Creates an HTML table representation of the [`OrderBook`]
 pub fn create_order_book_table(order_book: &OrderBook) -> RawHtml<String> {
     let buy = order_book.get_orders_for(Buy);
     let mut html = String::from("<h3>Order Book </h3>");
@@ -190,13 +194,13 @@ fn add_html(key: &OrderBookKey, orders: &VecDeque<OrderSingle>, html: &mut Strin
     let row = format!("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>", key.symbol(), total, key.price(), side);
     html.push_str(row.as_str());
 }
-
+///Returns the appropriate [`Matcher`] implementation based on the supplied algo parameter
 pub fn get_matcher(algo:&String) -> Box<dyn Matcher>{
 
     if algo == "FIFO" {
-        Box::new(FIFOMatcher::new())
+        Box::new(FIFOMatcher)
     }else{
-        Box::new(ProrataMatcher::new())
+        Box::new(ProrataMatcher)
     }
 
 }

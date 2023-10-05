@@ -1,6 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc::{Receiver, Sender};
 use std::vec;
+use colored::Colorize;
 
 use log::{error, info, trace};
 
@@ -11,34 +12,19 @@ use crate::model::domain::Status::{Filled, PartialFill};
 use crate::utils::{Aggregator, Sigma};
 
 #[derive(Debug)]
-pub struct FIFOMatcher {
-    name: String,
-    ex_cum_qty: u32,
-}
+pub struct FIFOMatcher;
 
 impl FIFOMatcher {
-    pub fn new() -> Self {
-        Self {
-            name: "FIFO".to_string(),
-            ex_cum_qty: 0,
-        }
-    }
 
-    fn set_ex_cum_qty(&mut self, qty: u32) {
-        self.ex_cum_qty = qty;
-    }
-    fn ex_cum_qty(&self) -> u32 {
-        self.ex_cum_qty
-    }
 
-    pub fn sum_of_filled_quantities(&self, fills: &Vec<Fill>, side: Side) -> u32 {
+     fn sum_of_filled_quantities(&self, fills: &Vec<Fill>, side: Side) -> u32 {
         let fills_for_sum: Vec<Fill> = fills.clone().into_iter().filter(|f| f.side() == side).collect();
         Aggregator::sigma(&fills_for_sum)
     }
 
     ///create client side and exchange side fills from client order and exchange order
     fn update_fills(&mut self, client_order: &OrderSingle, exchange_order: &mut OrderSingle,
-                    client_fill: &mut Fill, ex_fill: &mut Fill) {
+                    client_fill: &mut Fill, ex_fill: &mut Fill, cl_cum_map:&mut HashMap<String,u32>, ex_cum_map:&mut HashMap<String,u32>) {
 
         //set the secondary ids
         client_fill.set_secondary_cl_ord_id(exchange_order.cl_ord_id().clone());
@@ -46,23 +32,24 @@ impl FIFOMatcher {
         let order_qty = client_order.qty();
         let avail_qty = exchange_order.qty();
         let leaves_qty = client_fill.leaves_qty();
-        let cl_cum_qty = client_fill.cum_qty();
-
+        let cl_cum_qty = cl_cum_map.get(client_order.cl_ord_id()).unwrap().clone();
         if leaves_qty <= avail_qty {
-            self.exchange_partial_fill(cl_cum_qty, avail_qty, leaves_qty, client_fill, ex_fill, exchange_order)
+            self.exchange_partial_fill(cl_cum_qty, avail_qty, leaves_qty, client_fill, ex_fill, exchange_order,ex_cum_map);
         } else {
-            self.client_order_partial_fill(order_qty, avail_qty, client_fill, ex_fill, exchange_order);
+            self.client_order_partial_fill(order_qty, avail_qty, client_fill, ex_fill, exchange_order,cl_cum_map);
         }
     }
 
-    fn client_order_partial_fill(&self, order_qty: u32, avail_qty: u32, client_fill: &mut Fill, ex_fill: &mut Fill, exchange_order: &mut OrderSingle) {
-        let cl_cum_qty = client_fill.cum_qty() + exchange_order.qty();
+    fn client_order_partial_fill(&self, order_qty: u32, avail_qty: u32, client_fill: &mut Fill, ex_fill: &mut Fill, exchange_order: &mut OrderSingle,cl_cum_map:&mut HashMap<String,u32>) {
+        let mut cl_cum_qty = cl_cum_map.get(client_fill.cl_ord_id()).unwrap().to_owned();
+        cl_cum_qty += exchange_order.qty();
         let leaves_qty = order_qty - cl_cum_qty;
         // trace!(" order qty {} cl_cum_qty {} leaves qty {}",order_qty, cl_cum_qty,leaves_qty);
         client_fill.set_qty(avail_qty); //  100
         client_fill.set_cum_qty(cl_cum_qty); //100
         client_fill.set_leaves_qty(leaves_qty); // 50
         client_fill.set_status(PartialFill);
+        cl_cum_map.insert(client_fill.cl_ord_id().to_owned(),cl_cum_qty);
 
         ex_fill.set_qty(avail_qty);
         ex_fill.set_cum_qty(avail_qty);
@@ -72,8 +59,11 @@ impl FIFOMatcher {
     }
 
     fn exchange_partial_fill(&mut self, mut cl_cum_qty: u32, avail_qty: u32, leaves_qty: u32,
-                             client_fill: &mut Fill, ex_fill: &mut Fill, exchange_order: &mut OrderSingle) {
-        let mut ex_cum_qty = self.ex_cum_qty();
+                             client_fill: &mut Fill, ex_fill: &mut Fill, exchange_order: &mut OrderSingle, ex_cum_map:&mut HashMap<String,u32>) {
+
+        let mut ex_cum_qty = ex_cum_map.get(ex_fill.cl_ord_id()).unwrap().to_owned();
+
+        ex_cum_qty += leaves_qty;
 
         cl_cum_qty = cl_cum_qty + leaves_qty;
         client_fill.set_qty(leaves_qty);
@@ -82,7 +72,7 @@ impl FIFOMatcher {
         client_fill.set_status(Filled);
 
         ex_fill.set_qty(leaves_qty);
-        ex_fill.set_cum_qty(ex_cum_qty + leaves_qty);
+        ex_fill.set_cum_qty(ex_cum_qty);
         ex_fill.set_leaves_qty(avail_qty - ex_fill.qty());
         ex_cum_qty += leaves_qty;
         if ex_fill.leaves_qty() == 0 {
@@ -91,7 +81,7 @@ impl FIFOMatcher {
             ex_fill.set_status(PartialFill);
         }
         exchange_order.set_qty(avail_qty - leaves_qty);
-        self.set_ex_cum_qty(ex_cum_qty);
+       ex_cum_map.insert(ex_fill.cl_ord_id().to_owned(),ex_cum_qty);
     }
     fn print_fills(&self, fills: Vec<Fill>, side: Side) {
         let exchange_side = if side == Buy { Sell } else { Buy };
@@ -101,21 +91,23 @@ impl FIFOMatcher {
         info!("Exchange Fills {:#?}",exchange_fills);
     }
 
-    fn get_fills_for(&mut self, matching_map: &mut HashMap<OrderBookKey, VecDeque<OrderSingle>>,
+    fn get_fills_for(&mut self, matching_map: &mut HashMap<OrderBookKey, VecDeque<OrderSingle>>, cl_cum_map:&mut HashMap<String, u32>,
                      order: &OrderSingle) -> Vec<Fill> {
         let mut fills = vec![];
         let key = order.get_order_book_key();
 
         trace!("order book key {:?}",key);
         if matching_map.contains_key(&key) {
+
             let deque = matching_map.get(&key).unwrap().clone();
+            let mut e_map = self.create_cum_qty_map(&deque);
             let mut client_fill = Fill::from(order);
 
             // trace!("client fill {:#?}",client_fill);
             for avail in deque.iter() {
                 let mut exchange_order = avail.clone();
                 let mut ex_fill = Fill::from(avail);
-                self.update_fills(order, &mut exchange_order, &mut client_fill, &mut ex_fill);
+                self.update_fills(order, &mut exchange_order, &mut client_fill, &mut ex_fill,cl_cum_map, &mut e_map);
                 fills.push(client_fill.clone());
                 fills.push(ex_fill.clone());
                 if exchange_order.qty() == 0 {
@@ -167,11 +159,12 @@ impl Matcher for FIFOMatcher {
     }
 
 
-    /// This function uses the match_order method to do most of the work.
-    /// The logic iterates over the buy side orders and tries to match them
-    /// with any order available on the sell side
-    fn match_order_book(&mut self, order_book: &mut OrderBook) -> Vec<Fill> {
-        let (buy, mut sell) = order_book.get_orders_for_matching(Side::Buy);
+
+    /// The logic iterates over the [`OrderBook`] buy side orders and tries to match them
+    /// with any order available on the sell side. It matches to the fullest
+    /// extent possible before attempting a match for the next order in the queue
+     fn match_order_book(&mut self, order_book: &mut OrderBook) -> Vec<Fill> {
+        let (buy, mut sell) = order_book.get_orders_for_matching(Buy);
 
         let mut fills = vec![];
 
@@ -179,9 +172,10 @@ impl Matcher for FIFOMatcher {
 
         for (key, deque) in buy.iter() {
             let mut deque_clone = deque.clone();
+            let mut c_map = self.create_cum_qty_map(&deque);
             for order in deque.iter() {
                 trace!("Matching order with cl_ord_id {}", order.cl_ord_id());
-                let sub_fills: Vec<Fill> = self.get_fills_for(&mut sell, order);//self.match_order(order, &mut sell,order_book);
+                let sub_fills: Vec<Fill> = self.get_fills_for(&mut sell, &mut c_map,order);//self.match_order(order, &mut sell,order_book);
                 if sub_fills.is_empty() {
                     continue;
                 }
@@ -223,25 +217,34 @@ mod tests {
     use crate::matchers::fifo_matcher::FIFOMatcher;
     use crate::matchers::matcher::Matcher;
     use crate::model::domain::{Fill, OrderBook};
-    use crate::model::domain::Side::Buy;
+    use crate::model::domain::Side::{Buy, Sell};
     use crate::model::domain::Status::{Filled, PartialFill};
     use crate::utils::{create_order_book, create_order_from_string, read_input};
 
     #[test]
     fn test_update_fills_order_qty_eq_available_qty() {
-        let input = read_input("fifo_test_data/orders.txt");
+        let mut fifo = FIFOMatcher;
+        let input = read_input("test_data/orders.txt");
         let mut order_book = OrderBook::default();
         create_order_book(&mut order_book, input);
         let cl_order = create_order_from_string("test1 IBM 100 601.1 Sell".to_string());
         let key = cl_order.get_order_book_key();
-        let (buy, _) = order_book.get_orders_for_matching(Buy);
-        let orders = buy.get(&key).unwrap();
-        let mut ex_order = orders.clone().pop_front().unwrap();
-        let mut fifo = FIFOMatcher::new();
+        order_book.add_order_to_order_book(cl_order.clone());
+        //let (sell, buy) = order_book.get_orders_for_matching(Buy);
+        let buy = order_book.get_orders_for(Buy);
+        let sell = order_book.get_orders_for(Sell);
+        let sell_orders = sell.get(&key).unwrap();
+        let buy_orders = buy.get(&key).unwrap();
+        let mut ex_cum_map = fifo.create_cum_qty_map(&buy_orders);
+        let mut cl_cum_map = fifo.create_cum_qty_map(&sell_orders);
+        let mut ex_order = buy_orders.clone().pop_front().unwrap();
+
         let mut client_fill = Fill::from(&cl_order);
         let mut ex_fill = Fill::from(&ex_order);
 
-        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill);
+        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill,&mut cl_cum_map,&mut ex_cum_map);
+
+
         assert_eq!(client_fill.qty(), 100);
         assert_eq!(client_fill.cum_qty(), 100);
         assert_eq!(client_fill.leaves_qty(), 0);
@@ -250,48 +253,75 @@ mod tests {
         assert_eq!(ex_fill.cum_qty(), 100);
         assert_eq!(ex_fill.leaves_qty(), 0);
         assert_eq!(ex_fill.status().clone(), Filled);
-        assert_eq!(client_fill.secondary_cl_ord_id(), "id4");
+        assert_eq!(client_fill.secondary_cl_ord_id(), "id8");
         assert_eq!(ex_fill.secondary_cl_ord_id(), "test1");
         assert_eq!(ex_order.qty(), 0);
     }
 
+
     #[test]
     fn test_order_match_after_order_book_match() {
-        let input = read_input("fifo_test_data/orders.txt");
+
+        let input = read_input("test_data/orders.txt");
         let mut order_book = OrderBook::default();
         create_order_book(&mut order_book, input.clone());
-        let mut fifo = FIFOMatcher::new();
+        let mut fifo = FIFOMatcher;
         fifo.match_order_book(&mut order_book);
         let cl_order = create_order_from_string("test1 IBM 100 601.1 Sell".to_string());
-        let key = cl_order.get_order_book_key();
-        let (buy, _) = order_book.get_orders_for_matching(Buy);
+        order_book.add_order_to_order_book(cl_order.clone());
+        let key = cl_order.clone().get_order_book_key();
+        let mut fifo = FIFOMatcher;
+       // let (sell, buy) = order_book.get_orders_for_matching(Buy);
+        let client_orders_map = order_book.get_orders_for(Sell);
+        let ex_orders_map = order_book.get_orders_for(Buy);
+        let client_orders = client_orders_map.get(&key).unwrap();
+        let ex_orders = ex_orders_map.get(&key).unwrap();
+
+        let mut ex_cum_map = fifo.create_cum_qty_map(ex_orders);
+        let mut cl_cum_map = fifo.create_cum_qty_map(client_orders);
         //trace!("{:#?}",buy);
-        let orders = buy.get(&key).unwrap();
-        let mut ex_order = orders.clone().pop_front().unwrap();
-        let mut fifo = FIFOMatcher::new();
+    //    let orders = sell.get(&key).unwrap();
+        let mut ex_order = ex_orders.clone().pop_front().unwrap();
+
         let mut client_fill = Fill::from(&cl_order);
         let mut ex_fill = Fill::from(&ex_order);
 
-        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill);
+        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill, &mut cl_cum_map,&mut ex_cum_map);
+        assert_eq!(client_fill.qty(), 100);
+        assert_eq!(client_fill.cum_qty(), 100);
+        assert_eq!(client_fill.leaves_qty(), 0);
+        assert_eq!(client_fill.status().clone(), Filled);
+        assert_eq!(ex_fill.qty(), 100);
+        assert_eq!(ex_fill.cum_qty(), 100);
+        assert_eq!(ex_fill.leaves_qty(), 0);
+        assert_eq!(ex_fill.status().clone(), Filled);
+        assert_eq!(client_fill.secondary_cl_ord_id(), "id8");
+        assert_eq!(ex_fill.secondary_cl_ord_id(), "test1");
+        assert_eq!(ex_order.qty(), 0);
+
+
     }
-
-
     #[test]
     fn test_update_fills_order_qty_less_than_available_qty() {
-        let input = read_input("fifo_test_data/orders.txt");
+        let input = read_input("test_data/orders.txt");
         let mut order_book = OrderBook::default();
         create_order_book(&mut order_book, input);
         let cl_order = create_order_from_string("test1 IBM 50 601.1 Sell".to_string());
+        order_book.add_order_to_order_book(cl_order.clone());
         let key = cl_order.get_order_book_key();
-        let (buy, _) = order_book.get_orders_for_matching(Buy);
-        //trace!("{:#?}",buy);
-        let orders = buy.get(&key).unwrap();
-        let mut ex_order = orders.clone().pop_front().unwrap();
-        let mut fifo = FIFOMatcher::new();
+        let mut fifo = FIFOMatcher;
+        let client_order_map = order_book.get_orders_for(Sell);
+        let ex_order_map = order_book.get_orders_for(Buy);
+        let cl_orders = client_order_map.get(&key).unwrap();
+        let ex_orders = ex_order_map.get(&key).unwrap();
+        let mut ex_cum_map = fifo.create_cum_qty_map(ex_orders);
+        let mut cl_cum_map = fifo.create_cum_qty_map(cl_orders);
+        let mut ex_order = ex_orders.clone().pop_front().unwrap();
+        let mut fifo = FIFOMatcher;
         let mut client_fill = Fill::from(&cl_order);
         let mut ex_fill = Fill::from(&ex_order);
 
-        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill);
+        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill,&mut cl_cum_map,&mut ex_cum_map);
         assert_eq!(client_fill.qty(), 50);
         assert_eq!(client_fill.cum_qty(), 50);
         assert_eq!(client_fill.leaves_qty(), 0);
@@ -300,26 +330,32 @@ mod tests {
         assert_eq!(ex_fill.cum_qty(), 50);
         assert_eq!(ex_fill.leaves_qty(), 50);
         assert_eq!(ex_fill.status().clone(), PartialFill);
-        assert_eq!(client_fill.secondary_cl_ord_id(), "id4");
+        assert_eq!(client_fill.secondary_cl_ord_id(), "id8");
         assert_eq!(ex_fill.secondary_cl_ord_id(), "test1");
         assert_eq!(ex_order.qty(), 50);
     }
 
     #[test]
     fn test_update_fills_order_qty_greater_than_available_qty() {
-        let input = read_input("fifo_test_data/orders.txt");
+        let input = read_input("test_data/orders.txt");
         let mut order_book = OrderBook::default();
         create_order_book(&mut order_book, input);
         let cl_order = create_order_from_string("test1 IBM 150 601.1 Sell".to_string());
+        order_book.add_order_to_order_book(cl_order.clone());
         let key = cl_order.get_order_book_key();
-        let (buy, _) = order_book.get_orders_for_matching(Buy);
-        let orders = buy.get(&key).unwrap();
-        let mut ex_order = orders.clone().pop_front().unwrap();
-        let mut fifo = FIFOMatcher::new();
+        let mut fifo = FIFOMatcher;
+        let client_order_map = order_book.get_orders_for(Sell);
+        let ex_order_map = order_book.get_orders_for(Buy);
+        let cl_orders = client_order_map.get(&key).unwrap();
+        let ex_orders = ex_order_map.get(&key).unwrap();
+        let mut ex_cum_map = fifo.create_cum_qty_map(ex_orders);
+        let mut cl_cum_map = fifo.create_cum_qty_map(cl_orders);
+        let mut ex_order = ex_orders.clone().pop_front().unwrap();
+        let mut fifo = FIFOMatcher;
         let mut client_fill = Fill::from(&cl_order);
         let mut ex_fill = Fill::from(&ex_order);
 
-        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill);
+        fifo.update_fills(&cl_order, &mut ex_order, &mut client_fill, &mut ex_fill,&mut cl_cum_map,&mut ex_cum_map);
 
         assert_eq!(client_fill.qty(), 100);
         assert_eq!(client_fill.cum_qty(), 100);
@@ -329,7 +365,7 @@ mod tests {
         assert_eq!(ex_fill.cum_qty(), 100);
         assert_eq!(ex_fill.leaves_qty(), 0);
         assert_eq!(ex_fill.status().clone(), Filled);
-        assert_eq!(client_fill.secondary_cl_ord_id(), "id4");
+        assert_eq!(client_fill.secondary_cl_ord_id(), "id8");
         assert_eq!(ex_fill.secondary_cl_ord_id(), "test1");
         assert_eq!(ex_order.qty(), 0);
     }
