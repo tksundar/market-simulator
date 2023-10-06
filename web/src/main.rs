@@ -15,8 +15,8 @@ use rocket::http::Status;
 use rocket::response::content::RawHtml;
 use serde_json::to_string;
 
-use sim::common::utils::{create_order_from_string, log};
-use sim::model::domain::{Fill, OrderSingle, OrderType, Side};
+use matching_engine::common::utils::{create_order_from_string};
+use matching_engine::model::domain::{Fill, OrderSingle, OrderType, Side};
 use web::{create_order_book_table, get_matcher, get_order_book_from_file, OB, Order, persist_order_book};
 
 #[get("/")]
@@ -40,7 +40,6 @@ fn get_order_book(format: &str) -> Result<RawHtml<String>, Status> {
 #[post("/order_entry", data = "<order_form>")]
 fn add_order(order_form: Form<Order> ) -> Result<String, Status> {
     let order: Order = order_form.into_inner();
-    log(&format!("Received order {}", to_string(&order).unwrap()), web::LOG_FILE);
     let order_single = OrderSingle::new(order.qty(),
                                         order.symbol().clone(),
                                         order.price(),

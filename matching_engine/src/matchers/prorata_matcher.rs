@@ -128,13 +128,25 @@ impl Matcher for ProrataMatcher {
     /// Assume one sell order o3 exists for quantity n3 at t3 t3 > t2 > t1
     /// Then o1 will be get fills for quantity n1/(n1_n2) and o2 will get fills for quantity n2/(n1+m2)
     ///
-    /// # example:
+    /// # Example:
     /// Buy Order o1 => n1 = 300;
     /// Buy order o2 => n2 = 100;
     /// Sell Order o3 -> n3 = 300;
     ///
     /// O1 fill = n1/(n1+n2) or 3/4th of 300  = 225
     /// 02 fill = n2/(n1+n2) or 1/4th of 300 = 75
+    ///```rust
+    /// use matching_engine::common::utils::{create_order_book, read_input};
+    /// use matching_engine::matchers::fifo_matcher::FIFOMatcher;
+    /// use matching_engine::matchers::matcher::Matcher;
+    /// use matching_engine::matchers::prorata_matcher::ProrataMatcher;
+    /// let input = read_input("test_data/orders.txt");
+    /// let mut order_book = create_order_book(input);
+    /// //create a matcher
+    /// let mut  matcher = ProrataMatcher;
+    /// // match the order book with the matcher to produce executions
+    /// let mut fills = matcher.match_order_book(&mut order_book);
+    /// ```
     fn match_order_book(&mut self, order_book: &mut OrderBook) -> Vec<Fill> {
         let mut buy_map = order_book.get_orders_for(Buy);
         let mut sell_map = order_book.get_orders_for(Sell);

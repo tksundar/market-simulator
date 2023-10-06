@@ -21,6 +21,8 @@ pub mod formatters;
 pub mod common;
 
 
+
+
 pub struct CmdArgs {
     pub file_path: String,
     pub algo: String,
@@ -46,9 +48,7 @@ pub fn start_user(tx: &Sender<OrderBook>, rx: &Receiver<OrderBook>, file_path: S
         print_help();
     }
     let input = utils::read_input(&file_path);
-    let mut ob = OrderBook::default();
-    utils::create_order_book(&mut ob, input);
-
+    let mut ob = utils::create_order_book(input);
     if let Err(e) = tx.send(ob) {
         error!("Error sending file {}",e);
     }
@@ -110,5 +110,6 @@ pub fn get_cmd_args() -> Result<CmdArgs, &'static str> {
     };
     Ok(cmd_args)
 }
+
 
 

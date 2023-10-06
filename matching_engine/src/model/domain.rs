@@ -668,8 +668,7 @@ mod tests {
 
     #[test]
     fn test_print_md() {
-        let mut ob = OrderBook::default();
-        create_order_book(&mut ob, read_input("test_data/orders.txt"));
+        let mut ob = create_order_book( read_input("test_data/orders.txt"));
         let key = &String::from("IBM");
         let s = ob.pretty_print_self();
 

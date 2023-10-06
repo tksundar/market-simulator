@@ -12,13 +12,13 @@ use rocket::response::content::RawHtml;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
 
-use sim::common::utils;
-use sim::common::utils::{log, Sigma};
-use sim::matchers::fifo_matcher::FIFOMatcher;
-use sim::matchers::matcher::Matcher;
-use sim::matchers::prorata_matcher::ProrataMatcher;
-use sim::model::domain::{OrderBook, OrderBookKey, OrderSingle};
-use sim::model::domain::Side::{Buy, Sell};
+use matching_engine::common::utils;
+use matching_engine::common::utils::{log, Sigma};
+use matching_engine::matchers::fifo_matcher::FIFOMatcher;
+use matching_engine::matchers::matcher::Matcher;
+use matching_engine::matchers::prorata_matcher::ProrataMatcher;
+use matching_engine::model::domain::{OrderBook, OrderBookKey, OrderSingle};
+use matching_engine::model::domain::Side::{Buy, Sell};
 
 pub static LOG_FILE: &str = "web/logs/web.log";
 const ORDER_BOOK_FILE: &str = "orderbook.json";
@@ -209,10 +209,10 @@ pub fn get_matcher(algo:&String) -> Box<dyn Matcher>{
 mod tests {
     use serde_json::{from_str, to_string};
 
-    use sim::common::utils::create_order_book;
-    use sim::common::utils::read_input;
-    use sim::model::domain::OrderBook;
-    use sim::model::domain::Side::{Buy, Sell};
+    use matching_engine::common::utils::create_order_book;
+    use matching_engine::common::utils::read_input;
+    use matching_engine::model::domain::OrderBook;
+    use matching_engine::model::domain::Side::{Buy, Sell};
 
     use crate::OB;
 
@@ -228,8 +228,7 @@ mod tests {
 
     #[test]
     fn test_from() {
-        let mut order_book = OrderBook::default();
-        create_order_book(&mut order_book, read_input("test_data/orders.txt"));
+        let mut order_book = create_order_book(read_input("test_data/orders.txt"));
         assert_eq!(order_book.get_orders_for(Buy).len(), 1);
         assert_eq!(order_book.get_orders_for(Sell).len(), 1);
         let ob = OB::from(&order_book);

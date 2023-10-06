@@ -41,6 +41,11 @@ impl Sigma<Fill> for Aggregator {
 }
 
 ///Reads the orders from a file and creates a [`Vec<String>`], one entry per order
+/// # Example
+///```rust
+/// use matching_engine::common::utils::read_input;
+/// let input = read_input("test_data/orders.txt");
+/// ```
 pub fn read_input(file_path: &str) -> Vec<String> {
     trace!("reading file {file_path}");
     if file_path.is_empty() {
@@ -64,8 +69,14 @@ pub fn generate_id() -> String {
     (num + id).to_string()
 }
 
-///updates the [`OrderBook`] with the orders in the input vector
-pub fn create_order_book(order_book: &mut OrderBook, input: Vec<String>) {
+///Creates an [`OrderBook`] with the orders in the input vector
+/// # Example:
+///```rust
+/// use matching_engine::common::utils::{create_order_book, read_input};
+/// let input = read_input("test_data/orders.txt");
+/// let mut order_book = create_order_book(input);
+pub fn create_order_book(input: Vec<String>) -> OrderBook {
+    let mut order_book = OrderBook::default();
     if input.len() > 1 {
         trace!("Creating order book");
         for line in input {
@@ -75,11 +86,14 @@ pub fn create_order_book(order_book: &mut OrderBook, input: Vec<String>) {
             }
         }
     }
+    order_book
 }
 ///Creates an Order from the string
 /// # Example
-/// for a string id1 IBM 300 602.5 Buy , this fn returns an [`OrderSingle`] instance,If an empty string
-/// is supplied, the fn will return the default [`OrderSingle`]
+///```rust
+/// let order_string = "test1 IBM 100 150 Buy";
+/// use matching_engine::common::utils::create_order_from_string;
+/// let order = create_order_from_string(order_string.to_string());
 pub fn create_order_from_string(line: String) -> OrderSingle {
     let tokens: Vec<&str> = line.split(" ").collect();
     if tokens.len() != 5 {

@@ -6,17 +6,17 @@ A simple exchange simulator project with the following features
 * match an order using FIFO matcher or Pro-rata
   matcher (https://corporatefinanceinstitute.com/resources/career-map/sell-side/capital-markets/matching-orders/)
 
-Module sim is the back end exchange simulator that has all the matching functionalities with a CLI. The web module
+Module matching_engine is the back end engine that has all the matching functionalities with a CLI. The web module
 adds the web support.
 
-<H2> CLI Module </H2>
+<H2>Matching Engine </H2>
 
 
 <h3>Usage:</h3>
 
 execute cargo run -- -h or <br>
 
-exchange_simulator -h for complete usage help
+matching_engine -h for complete usage help
 
 Examples:
 

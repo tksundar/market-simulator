@@ -2,8 +2,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread::JoinHandle;
 use log::warn;
 
-use sim::{CmdArgs, get_cmd_args, start_matcher, start_user};
-use sim::model::domain::OrderBook;
+use matching_engine::{CmdArgs, get_cmd_args, start_matcher, start_user};
+
 
 #[allow(unused_imports)]
 

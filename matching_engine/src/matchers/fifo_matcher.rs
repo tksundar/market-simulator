@@ -163,6 +163,18 @@ impl Matcher for FIFOMatcher {
     /// The logic iterates over the [`OrderBook`] buy side orders and tries to match them
     /// with any order available on the sell side. It matches to the fullest
     /// extent possible before attempting a match for the next order in the queue
+    /// # Example:
+    /// ```rust
+    /// use matching_engine::common::utils::{create_order_book, read_input};
+    /// use matching_engine::matchers::fifo_matcher::FIFOMatcher;
+    /// use matching_engine::matchers::matcher::Matcher;
+    /// let input = read_input("test_data/orders.txt");
+    /// let mut order_book = create_order_book(input);
+    /// //create a matcher
+    /// let mut  matcher = FIFOMatcher;
+    /// // match the order book with the matcher to produce executions
+    /// let mut fills = matcher.match_order_book(&mut order_book);
+    /// ```
      fn match_order_book(&mut self, order_book: &mut OrderBook) -> Vec<Fill> {
         let (buy, mut sell) = order_book.get_orders_for_matching(Buy);
 
@@ -225,8 +237,7 @@ mod tests {
     fn test_update_fills_order_qty_eq_available_qty() {
         let mut fifo = FIFOMatcher;
         let input = read_input("test_data/orders.txt");
-        let mut order_book = OrderBook::default();
-        create_order_book(&mut order_book, input);
+        let mut order_book = create_order_book( input);
         let cl_order = create_order_from_string("test1 IBM 100 601.1 Sell".to_string());
         let key = cl_order.get_order_book_key();
         order_book.add_order_to_order_book(cl_order.clone());
@@ -263,8 +274,7 @@ mod tests {
     fn test_order_match_after_order_book_match() {
 
         let input = read_input("test_data/orders.txt");
-        let mut order_book = OrderBook::default();
-        create_order_book(&mut order_book, input.clone());
+        let mut order_book = create_order_book( input.clone());
         let mut fifo = FIFOMatcher;
         fifo.match_order_book(&mut order_book);
         let cl_order = create_order_from_string("test1 IBM 100 601.1 Sell".to_string());
@@ -304,8 +314,7 @@ mod tests {
     #[test]
     fn test_update_fills_order_qty_less_than_available_qty() {
         let input = read_input("test_data/orders.txt");
-        let mut order_book = OrderBook::default();
-        create_order_book(&mut order_book, input);
+        let mut order_book = create_order_book(input);
         let cl_order = create_order_from_string("test1 IBM 50 601.1 Sell".to_string());
         order_book.add_order_to_order_book(cl_order.clone());
         let key = cl_order.get_order_book_key();
@@ -338,8 +347,7 @@ mod tests {
     #[test]
     fn test_update_fills_order_qty_greater_than_available_qty() {
         let input = read_input("test_data/orders.txt");
-        let mut order_book = OrderBook::default();
-        create_order_book(&mut order_book, input);
+        let mut order_book = create_order_book(input);
         let cl_order = create_order_from_string("test1 IBM 150 601.1 Sell".to_string());
         order_book.add_order_to_order_book(cl_order.clone());
         let key = cl_order.get_order_book_key();

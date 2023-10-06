@@ -1,13 +1,12 @@
-use sim::matchers::matcher::Matcher;
-use sim::matchers::prorata_matcher::ProrataMatcher;
-use sim::model::domain::{Fill, OrderBook};
-use sim::model::domain::Side::{Buy, Sell};
-use sim::common::utils::{create_order_book,read_input};
+use matching_engine::matchers::matcher::Matcher;
+use matching_engine::matchers::prorata_matcher::ProrataMatcher;
+use matching_engine::model::domain::{Fill, OrderBook};
+use matching_engine::model::domain::Side::{Buy, Sell};
+use matching_engine::common::utils::{create_order_book,read_input};
 
 #[test]
 fn test_match_order_book() {
-    let mut order_book = OrderBook::default();
-    create_order_book(&mut order_book, read_input("test_data/orders.txt"));
+    let mut order_book = create_order_book(read_input("test_data/orders.txt"));
     let mut pro = ProrataMatcher;
     let fills = pro.match_order_book(&mut order_book);
 
