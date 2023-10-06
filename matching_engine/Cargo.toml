@@ -1,7 +1,13 @@
 [package]
 name = "matching_engine"
 version = "0.1.0"
+authors = ["Sundar Krishnamachari <tksrajan@gmail.com>"]
 edition = "2021"
+rust-version = "1.74"
+readme = "README.md"
+repository = "https://github.com/tksundar/sim-web"
+license = "MIT OR Apache-2.0"
+keywords = ["finance" , "fintech" ,"market_simulator","exchange_simulator" ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
