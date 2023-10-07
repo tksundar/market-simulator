@@ -102,7 +102,7 @@ impl Status {
         }
     }
 
-    fn string_value(&self) -> &str {
+    pub fn string_value(&self) -> &str {
         match self {
             New => "New",
             PendingNew => "Pending",
@@ -257,6 +257,10 @@ impl Fill {
 
     pub fn set_qty(&mut self, qty: u32) {
         self.qty = qty;
+    }
+
+    pub fn price(&self) -> f64 {
+        self.price
     }
 
     pub fn set_cum_qty(&mut self, cum_qty: u32) {
