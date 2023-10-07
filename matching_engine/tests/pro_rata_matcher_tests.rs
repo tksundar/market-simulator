@@ -17,5 +17,8 @@ fn test_match_order_book() {
     assert_eq!(exchange_fills.len(), 4);
     assert_eq!(order_book.get_orders_for(Buy).len(), 3);
     assert_eq!(order_book.get_orders_for(Sell).len(), 1);
-    order_book.print_market_depth_for("IBM");
+    let symbols = order_book.get_excl_keys();
+    for symbol in symbols {
+        order_book.print_market_depth_for(symbol);
+    }
 }

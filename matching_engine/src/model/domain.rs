@@ -541,7 +541,7 @@ impl OrderBook {
     }
 
 
-    fn get_excl_keys(&self) -> Vec<&str> {
+    pub fn get_excl_keys(&self) -> Vec<&str> {
         let mut all_keys = vec![];
         for (key, _) in &self.buy_orders {
             all_keys.push(key.symbol());
@@ -558,8 +558,8 @@ impl OrderBook {
         excl_keys
     }
     pub fn print_market_depth_for(&self, symbol: &str) -> String {
-        let mut md_buy = self.get_md(symbol, &self.buy_orders).clone();
-        let mut md_sell = self.get_md(symbol, &self.sell_orders).clone();
+        let mut md_buy = self.get_md(symbol, &self.buy_orders,Buy).clone();
+        let mut md_sell = self.get_md(symbol, &self.sell_orders,Sell ).clone();
         let s = format!("market depth for {}", symbol);
         let mut strings = String::new();
         println!("\n{}", s.reversed());
@@ -576,9 +576,9 @@ impl OrderBook {
 
     fn print_md(&self, mds_buy: &Vec<MarketDepth>) -> String {
         let mut table = Table::new();
-        table.add_row(row!["Quantity","Price"]);
+        table.add_row(row!["Symbol","Quantity","Price" , "Side"]);
         for md in mds_buy {
-            table.add_row(row![md.qty(), md.price()]);
+            table.add_row(row![md.symbol(),md.qty(), md.price(),md.side().string_value()]);
         }
 
        table.printstd();
@@ -586,19 +586,26 @@ impl OrderBook {
     }
 
 
-    fn get_md(&self, symbol: &str, order_map: &HashMap<OrderBookKey, VecDeque<OrderSingle>>) -> Vec<MarketDepth> {
-        let mut buys = vec![];
+    fn get_md(&self, symbol: &str, order_map: &HashMap<OrderBookKey, VecDeque<OrderSingle>>, side: Side) -> Vec<MarketDepth> {
+        let mut depths = vec![];
 
         for (key, orders) in order_map {
             let side = &orders[0].side();
             if key.symbol() == symbol {
                 let orders: Vec<OrderSingle> = orders.clone().into_iter().collect();
                 let aggregate = Aggregator::sigma(&orders);
-                let md = MarketDepth::new(key.price, aggregate, side.clone());
-                buys.push(md);
+                let md = MarketDepth::new(key.price, aggregate, side.clone(),symbol.to_string());
+                depths.push(md);
             }
         }
-        buys
+        depths.sort_by(|md1,md2| md1.price().partial_cmp(&md2.price()).unwrap());
+        if side == Buy{
+            depths.reverse();
+        }
+
+        depths
+
+
     }
 }
 
@@ -607,11 +614,12 @@ struct MarketDepth {
     price: f64,
     qty: u32,
     side: Side,
+    symbol: String,
 }
 
 impl MarketDepth {
-    fn new(price: f64, qty: u32, side: Side) -> Self {
-        Self { price, qty, side }
+    fn new(price: f64, qty: u32, side: Side,symbol:String) -> Self {
+        Self { price, qty, side,symbol }
     }
 
 
@@ -620,6 +628,13 @@ impl MarketDepth {
     }
     pub fn qty(&self) -> u32 {
         self.qty
+    }
+
+    pub fn symbol(&self) -> &String {
+    &self.symbol
+}
+    pub fn side(&self) -> Side {
+        self.side.clone()
     }
 }
 

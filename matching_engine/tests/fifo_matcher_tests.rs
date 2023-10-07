@@ -1,4 +1,4 @@
-use matching_engine::common::utils::{create_order_book, read_input};
+use matching_engine::common::utils::{create_order_book, create_order_from_string, read_input};
 use matching_engine::matchers::fifo_matcher::FIFOMatcher;
 use matching_engine::matchers::matcher::Matcher;
 use matching_engine::model::domain::{Fill, OrderBook, OrderBookKey};
@@ -13,7 +13,11 @@ fn test_fifo_match_order_book(){
     let fills = fifo.match_order_book(&mut order_book);
     let buy = order_book.get_orders_for(Buy);
     let sell = order_book.get_orders_for(Sell);
-    order_book.pretty_print_self();
+
+    let o = create_order_from_string("id199 TATA 100 621 Buy".to_string());
+    order_book.add_order_to_order_book(o);
+    let s = order_book.pretty_print_self();
+    println!("{}",s);
 
     assert_eq!(buy.len(),3);
     assert_eq!(sell.len(),1);
@@ -39,7 +43,8 @@ fn test_match_order_multiple_buy_orders_against_a_single_sell_order() {
     assert_eq!(sell_orders.len(),1);
     let mut fifo = FIFOMatcher;
     let fills = fifo.match_order_book(&mut order_book);
-    Fill::pretty_print(&fills);
+    let s = Fill::pretty_print(&fills);
+    println!("{}",s);
     let client_fills: Vec<Fill> = fills.clone().into_iter().filter(|f| f.side() == Buy).collect();
     let ex_fills: Vec<Fill> = fills.clone().into_iter().filter(|f| f.side() == Sell).collect();
 }
