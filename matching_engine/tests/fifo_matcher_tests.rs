@@ -10,11 +10,14 @@ use matching_engine::model::domain::Side::{Buy, Sell};
 fn test_fifo_match_order_book(){
     let mut order_book = create_order_book(read_input("test_data/orders.txt"));
     let mut fifo = FIFOMatcher;
-    fifo.match_order_book(&mut order_book);
+    let fills = fifo.match_order_book(&mut order_book);
     let buy = order_book.get_orders_for(Buy);
     let sell = order_book.get_orders_for(Sell);
+    order_book.pretty_print_self();
+
     assert_eq!(buy.len(),3);
     assert_eq!(sell.len(),1);
+    assert_eq!(fills.len(),4);
 }
 
 #[test]

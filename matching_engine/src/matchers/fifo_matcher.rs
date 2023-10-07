@@ -176,8 +176,8 @@ impl Matcher for FIFOMatcher {
     /// let mut fills = matcher.match_order_book(&mut order_book);
     /// ```
      fn match_order_book(&mut self, order_book: &mut OrderBook) -> Vec<Fill> {
-        let (buy, mut sell) = order_book.get_orders_for_matching(Buy);
-
+        let buy = order_book.get_orders_for(Buy);
+        let mut sell = order_book.get_orders_for(Sell);
         let mut fills = vec![];
 
         let mut temp = HashMap::new();
@@ -187,7 +187,7 @@ impl Matcher for FIFOMatcher {
             let mut c_map = self.create_cum_qty_map(&deque);
             for order in deque.iter() {
                 trace!("Matching order with cl_ord_id {}", order.cl_ord_id());
-                let sub_fills: Vec<Fill> = self.get_fills_for(&mut sell, &mut c_map,order);//self.match_order(order, &mut sell,order_book);
+                let sub_fills: Vec<Fill> = self.get_fills_for(&mut sell, &mut c_map,order);
                 if sub_fills.is_empty() {
                     continue;
                 }

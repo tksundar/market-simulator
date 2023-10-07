@@ -46,6 +46,7 @@ pub enum Side {
     Buy,
     Sell,
 }
+
 /// Side of the order. Can be either Buy or Sell
 impl Side {
     pub fn string_value(&self) -> String {
@@ -69,6 +70,7 @@ impl Default for Side {
         Buy
     }
 }
+
 ///Order Status and Execution Status. Can be one of New,
 ///    PendingNew,
 ///    PartialFill,
@@ -272,6 +274,10 @@ impl Fill {
         self.qty
     }
 
+    pub fn symbol(&self) -> &String {
+        &self.symbol
+    }
+
     pub fn cum_qty(&self) -> u32 {
         self.cum_qty
     }
@@ -347,15 +353,15 @@ impl OrderSingle {
         }
     }
 
-/// Returns `true` if the order is valid. `false` otherwise. As you can see Market orders are
-/// not supported as af now
-///
-/// # Example
-/// self.symbol.trim().len() > 0 &&
-///             self.price() > 0.0 &&
-///             self.qty() > 0 &&
-///             (self.side.string_value() == "Buy" || self.side.string_value() == "Sell") &&
-///            self.order_type.string_value() == "Limit
+    /// Returns `true` if the order is valid. `false` otherwise. As you can see Market orders are
+    /// not supported as af now
+    ///
+    /// # Example
+    /// self.symbol.trim().len() > 0 &&
+    ///             self.price() > 0.0 &&
+    ///             self.qty() > 0 &&
+    ///             (self.side.string_value() == "Buy" || self.side.string_value() == "Sell") &&
+    ///            self.order_type.string_value() == "Limit
     pub fn is_valid(&self) -> bool {
         self.symbol.trim().len() > 0 &&
             self.price() > 0.0 &&
@@ -477,15 +483,6 @@ impl OrderBook {
         self.clone()
     }
 
-
-    pub fn get_orders_for_matching(&self, side: Side) -> (HashMap<OrderBookKey, VecDeque<OrderSingle>>,
-                                                          HashMap<OrderBookKey, VecDeque<OrderSingle>>) {
-        match side {
-            Buy => (self.buy_orders.clone(), self.sell_orders.clone()),
-            Sell => (self.sell_orders.clone(), self.buy_orders.clone())
-        }
-    }
-
     pub fn get_orders_for(&self, side: Side) -> HashMap<OrderBookKey, VecDeque<OrderSingle>> {
         match side {
             Buy => self.buy_orders.clone(),
@@ -566,7 +563,6 @@ impl OrderBook {
         strings.push_str("Offers:\n");
         strings.push_str(self.print_md(&mut md_sell).as_str());
         strings
-
     }
 
     fn print_md(&self, mds_buy: &Vec<MarketDepth>) -> String {
@@ -668,7 +664,7 @@ mod tests {
 
     #[test]
     fn test_print_md() {
-        let mut ob = create_order_book( read_input("test_data/orders.txt"));
+        let mut ob = create_order_book(read_input("test_data/orders.txt"));
         let key = &String::from("IBM");
         let s = ob.pretty_print_self();
 
