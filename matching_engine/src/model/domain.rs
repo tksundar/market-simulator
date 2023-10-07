@@ -2,6 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
+
 use colored::Colorize;
 use prettytable::{row, Table};
 use serde::{Deserialize, Serialize};
@@ -242,7 +243,7 @@ impl Fill {
         }
 
         let title = format!("{}", "Fills".reversed().bold());
-        println!("\n{}", title);
+        println!("{}", title);
 
 
         let mut table = Table::new();
@@ -252,7 +253,11 @@ impl Fill {
         }
 
         table.printstd();
-        table.to_string()
+        let f_str = format!("{}","Fills".bold());
+        let mut titled_fills = String::from(f_str);
+        titled_fills.push_str("\n");
+        titled_fills.push_str(table.to_string().as_str());
+        titled_fills
     }
 
     pub fn set_qty(&mut self, qty: u32) {
@@ -625,7 +630,9 @@ mod tests {
     use log::debug;
 
     use crate::common::utils::{create_order_book, read_input};
-    use crate::model::domain::{OrderBook, OrderBookKey};
+    use crate::matchers::fifo_matcher::FIFOMatcher;
+    use crate::matchers::matcher::Matcher;
+    use crate::model::domain::{Fill, OrderBook, OrderBookKey};
 
     #[test]
     fn test_partial_equals() {
@@ -673,6 +680,16 @@ mod tests {
         let s = ob.pretty_print_self();
 
         println!("{}", s);
+    }
+
+    #[test]
+    fn test_fill_str(){
+        let mut order_book = create_order_book(read_input("test_data/orders.txt"));
+        let mut matcher = FIFOMatcher;
+        let fills = matcher.match_order_book(&mut order_book);
+        let s = Fill::pretty_print(&fills);
+        println!("{}",s);
+
     }
 }
 
