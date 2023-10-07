@@ -581,7 +581,7 @@ impl OrderBook {
             table.add_row(row![md.qty(), md.price()]);
         }
 
-        table.printstd();
+       table.printstd();
         table.to_string()
     }
 
