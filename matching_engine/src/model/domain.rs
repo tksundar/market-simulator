@@ -253,7 +253,7 @@ impl Fill {
         }
 
         table.printstd();
-        let f_str = format!("{}","Fills".bold());
+        let f_str = format!("{}","Fills:");
         let mut titled_fills = String::from(f_str);
         titled_fills.push_str("\n");
         titled_fills.push_str(table.to_string().as_str());
