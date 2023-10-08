@@ -63,7 +63,7 @@ pub fn start_user(tx: &Sender<OrderBook>, rx: &Receiver<OrderBook>, file_path: S
         };
 
         order_book.pretty_print_self();
-        info!("Enter an order({} ) to match  or {} to quit","<id> <symbol> <qty> <price> <side(Buy|Sell)>".bold().reversed(), "q".bold().red());
+        println!("Enter an order({} ) to match  or {} to quit","<id> <symbol> <qty> <price> <side(Buy|Sell)>".bold().reversed(), "q".bold().red());
         println!("");
         let mut line = String::new();
         io::stdin().read_line(&mut line).unwrap();
