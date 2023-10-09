@@ -1,15 +1,38 @@
-A simple matching engine that simulates an exchange with the following features
+
+A simple market simulator project with the following features
 
 * Accept an order
 * Accept orders from a file
 * match an order using FIFO matcher or Pro-rata
   matcher (https://corporatefinanceinstitute.com/resources/career-map/sell-side/capital-markets/matching-orders/)
 
+Module matching_engine is the back end engine that has all the matching functionalities with a CLI.
 
+<H3>Matching Engine </H3>
 
-<H2>Matching Engine </H2>
+The matching engine exposes the API required to create an order book and  to match the order book to produce executions or Fills. A typical use case will be to create the order book fro a file containing orders, one order per line as given below and then use the matching engine to run the matching algorithm as so. Please refer to the CLI section for the order format.
+<pre>
+<code>
+use matching_engine::common::utils::{create_order_book, read_input};
+use matching_engine::matchers::fifo_matcher::FIFOMatcher;
+use matching_engine::matchers::matcher::Matcher;
 
-<h3>Usage:</h3>
+let input = read_input("test_data/orders.txt");<br>
+let mut order_book = create_order_book(input);<br>
+
+//create a matcher<br>
+ let mut  matcher = FIFOMatcher;// or Prorata Matcher
+ 
+// match the order book with the matcher to produce executions
+ let mut fills = matcher.match_order_book(&mut order_book);
+</code>
+</pre>
+
+The api is published  at https://crates.io/crates/matching_engine
+
+<h3>CLI:</h3>
+
+The codebase also contains a CLI interface which can be executed as follows
 
 execute cargo run -- -h or <br>
 
@@ -38,8 +61,12 @@ executing <i> cargo run -- prorata_test_data/orders.txt PRO </i> will produce th
 <p><img src="images/prorata.png?raw=true"/> </p>
 
 
-Executing just cargo run (or sim without any arguments) will start the FIFO matcher with an empty order
-book that the user may populate from command line
 
-<h3>API docs:</h3>
-All public apis are extensively documented. Please refer to them for help on actual usage
+
+
+
+
+
+
+
+
