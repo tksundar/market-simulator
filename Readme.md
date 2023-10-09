@@ -1,18 +1,37 @@
 
-A simple exchange simulator project with the following features
+A simple market simulator project with the following features
 
 * Accept an order
 * Accept orders from a file
 * match an order using FIFO matcher or Pro-rata
   matcher (https://corporatefinanceinstitute.com/resources/career-map/sell-side/capital-markets/matching-orders/)
 
-Module matching_engine is the back end engine that has all the matching functionalities with a CLI. The web module
-adds the web support.
+Module matching_engine is the back end engine that has all the matching functionalities with a CLI. 
 
-<H2>Matching Engine </H2>
+<H3>Matching Engine </H3>
 
+The matching engine exposes the API required to create an order book and  to match the order book to produce executions or Fills. A typical use case will be to create the order book fro a file containing orders, one order per line as given below and then use the matching engine to run the matching algorithm as so. Please refer to the CLI section for the order format
 
-<h3>Usage:</h3>
+<code>
+use matching_engine::common::utils::{create_order_book, read_input}; <br>
+use matching_engine::matchers::fifo_matcher::FIFOMatcher;<br>
+use matching_engine::matchers::matcher::Matcher;<br>
+
+let input = read_input("test_data/orders.txt");<br>
+let mut order_book = create_order_book(input);<br>
+
+//create a matcher<br>
+ let mut  matcher = FIFOMatcher;// or Prorata Matcher<br>
+ 
+// match the order book with the matcher to produce executions<br>
+ let mut fills = matcher.match_order_book(&mut order_book);<br>
+</code>
+
+The api is published  at https://crates.io/crates/matching_engine
+
+<h3>CLI:</h3>
+
+The codebase also contains a CLI interface which can be executed as follows
 
 execute cargo run -- -h or <br>
 
@@ -41,43 +60,7 @@ executing <i> cargo run -- prorata_test_data/orders.txt PRO </i> will produce th
 <p><img src="images/prorata.png?raw=true"/> </p>
 
 
-Executing just cargo run (or sim without any arguments) will start the FIFO matcher with an empty order
-book that the user may populate from command line
 
-<h2>Web Module</h2>
-
-By default the FIFO algo us used for matching. Set the ALGO environment variable to select the 
-algo for the matcher like so
-
-export ALGO=PRO
-
-<h3> Usage: </h3>
-
-cargo run or web.exe(from target/debug or target/release directory). This starts a web server locally 
-on port 8000. The following urls are supported. Static files are not automatically copied during build. This has to be manually 
-added or handled with bespoke build scripts
-
-* /index.html : the order entry page. Delivered froma the static directory at the root
-* /order_entry : Submits the order for matching. Responds with fills if matched. Returns the fills in either json or 
-   html format
-* /order_book/json : 
-  * Displays the current order book in json format
-* /order_book/pretty: 
-  * Displays the current order book as html table
-* /reset      : resets the order book to an empty order book.  Reset is enabled only for admin roles.
-* /file_upload.html     : Upload an order file to create the order book. Multiple uploads will update the order book
-
-A single order book is shared by all users . Order Book is persisted and survives server restart. Access to order book is thread safe
-
-All responses are in json by default. HTML output is rendered if the pretty format is chosen
-
-<h2>Fix Module</h2>
-At some point I would like to add FIX support. There is nothing available in https://crates.io/ that is stable enough for use. 
-Looks like this has to be built ground up. 
-
-
-
-[//]: # (TODO)
 
 
 
