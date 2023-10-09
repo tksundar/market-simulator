@@ -10,12 +10,11 @@ Module matching_engine is the back end engine that has all the matching function
 
 <H3>Matching Engine </H3>
 
-The matching engine exposes the API required to create an order book and  to match the order book to produce executions or Fills. A typical use case will be to create the order book fro a file containing orders, one order per line as given below and then use the matching engine to run the matching algorithm as so. Please refer to the CLI section for the order format
+The matching engine exposes the API required to create an order book and  to match the order book to produce executions or Fills. A typical use case will be to create the order book fro a file containing orders, one order per line as given below and then use the matching engine to run the matching algorithm as so. Please refer to the CLI section for the order format.
 
-<code>
 use matching_engine::common::utils::{create_order_book, read_input}; <br>
 use matching_engine::matchers::fifo_matcher::FIFOMatcher;<br>
-use matching_engine::matchers::matcher::Matcher;<br>
+use matching_engine::matchers::matcher::Matcher;</p>
 
 let input = read_input("test_data/orders.txt");<br>
 let mut order_book = create_order_book(input);<br>
